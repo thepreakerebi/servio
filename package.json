@@ -12,7 +12,10 @@
     "check": "prettier --write . && eslint --fix"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.64",
+    "@convex-dev/auth": "^0.0.90",
     "@convex-dev/react-query": "^0.0.0-alpha.11",
+    "@convex-dev/resend": "^0.1.13",
     "@netlify/vite-plugin-tanstack-start": "^1.0.2",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.7.0",
@@ -23,12 +26,15 @@
     "@tanstack/react-router-with-query": "^1.130.17",
     "@tanstack/react-start": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",
+    "ai": "^5.0.89",
     "convex": "^1.28.2",
     "lucide-react": "^0.544.0",
+    "openai": "^6.8.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwindcss": "^4.0.6",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@tanstack/eslint-config": "^0.3.0",
