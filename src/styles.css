@@ -6,14 +6,14 @@
 
 /** Colors **/
 :root {
-  --background: var(--color-white);
+  --background: var(--color-zinc-50);
   --foreground: var(--color-zinc-950);
-  --card: var(--color-white);
+  --card: var(--color-zinc-50);
   --card-foreground: var(--color-zinc-950);
-  --popover: var(--color-white);
+  --popover: var(--color-zinc-50);
   --popover-foreground: var(--color-zinc-950);
   --primary: var(--color-blue-500);
-  --primary-foreground: var(--color-white);
+  --primary-foreground: var(--color-zinc-50);
   --secondary: var(--color-zinc-100);
   --secondary-foreground: var(--color-zinc-900);
   --muted: var(--color-zinc-100);
@@ -21,7 +21,7 @@
   --accent: var(--color-zinc-100);
   --accent-foreground: var(--color-zinc-900);
   --destructive: var(--color-red-600);
-  --destructive-foreground: var(--color-white);
+  --destructive-foreground: var(--color-zinc-50);
   --chart-1: var(--color-blue-500);
   --chart-2: var(--color-green-500);
   --chart-3: var(--color-yellow-500);
@@ -49,7 +49,7 @@
   --popover: var(--color-zinc-950);
   --popover-foreground: var(--color-zinc-50);
   --primary: var(--color-blue-600);
-  --primary-foreground: var(--color-white);
+  --primary-foreground: var(--color-zinc-50);
   --secondary: var(--color-zinc-800);
   --secondary-foreground: var(--color-zinc-50);
   --muted: var(--color-zinc-900);
@@ -57,7 +57,7 @@
   --accent: var(--color-zinc-900);
   --accent-foreground: var(--color-zinc-50);
   --destructive: var(--color-red-600);
-  --destructive-foreground: var(--color-white);
+  --destructive-foreground: var(--color-zinc-50);
   --chart-1: var(--color-blue-500);
   --chart-2: var(--color-green-500);
   --chart-3: var(--color-yellow-500);
@@ -69,7 +69,7 @@
   --sidebar: hsl(240 5.9% 10%);
   --sidebar-foreground: hsl(240 4.8% 95.9%);
   --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
   --sidebar-accent: hsl(240 3.7% 15.9%);
   --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
   --sidebar-border: hsl(240 3.7% 15.9%);
