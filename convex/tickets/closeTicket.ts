@@ -23,7 +23,7 @@ export const closeTicket = mutation({
     await ctx.db.patch(args.ticketId, {
       verificationPhotoId: args.verificationPhotoId,
       closedAt: Date.now(),
-      status: 'Closed',
+      status: 'Fixed',
     })
   },
 })

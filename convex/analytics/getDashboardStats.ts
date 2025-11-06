@@ -58,7 +58,7 @@ export const getDashboardStats = query({
 
     // Calculate average fix time (time from creation to closure)
     const closedTickets = tickets.filter(
-      (t) => t.status === 'Closed' && t.closedAt,
+      (t) => t.status === 'Fixed' && t.closedAt,
     )
     const fixTimes = closedTickets
       .map((ticket) => ticket.closedAt! - ticket.createdAt)
