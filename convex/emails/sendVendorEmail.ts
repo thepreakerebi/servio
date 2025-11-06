@@ -66,6 +66,13 @@ export const sendVendorEmail = action({
         (photoUrl ? `<br><img src="${photoUrl}" alt="Issue photo">` : ''),
     })
 
+    // Store email-to-ticket mapping for tracking email events
+    await ctx.runMutation(internal.emails.storeEmailMapping, {
+      emailId: emailId as string,
+      ticketId: args.ticketId,
+      vendorId: args.vendorId,
+    })
+
     // Create or update conversation
     let conversationId = ticket.conversationId
     if (!conversationId) {

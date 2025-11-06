@@ -47,6 +47,16 @@ export default defineSchema({
     specialty: v.string(),
     address: v.string(),
     rating: v.optional(v.number()),
+    emailStatus: v.optional(
+      v.union(
+        v.literal('valid'),
+        v.literal('invalid'),
+        v.literal('bounced'),
+        v.literal('complained'),
+        v.literal('doNotEmail'),
+      ),
+    ),
+    lastEmailError: v.optional(v.string()),
     jobs: v.array(
       v.object({
         ticketId: v.id('tickets'),
@@ -61,6 +71,28 @@ export default defineSchema({
     dimensions: 1536,
     filterFields: ['specialty'],
   }),
+
+  emailMappings: defineTable({
+    emailId: v.string(), // Resend email ID
+    ticketId: v.id('tickets'),
+    vendorId: v.id('vendors'),
+    sentAt: v.number(),
+    status: v.optional(
+      v.union(
+        v.literal('sent'),
+        v.literal('delivered'),
+        v.literal('bounced'),
+        v.literal('complained'),
+        v.literal('opened'),
+        v.literal('clicked'),
+      ),
+    ),
+    lastEventAt: v.optional(v.number()),
+    bounceReason: v.optional(v.string()),
+  })
+    .index('by_emailId', ['emailId'])
+    .index('by_ticketId', ['ticketId'])
+    .index('by_vendorId', ['vendorId']),
 
   firecrawlResults: defineTable({
     ticketId: v.id('tickets'),
