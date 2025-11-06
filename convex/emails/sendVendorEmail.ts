@@ -57,9 +57,13 @@ export const sendVendorEmail = action({
 
     // Send email via Resend
     const emailId = await resend.sendEmail(ctx, {
-      from: 'tickets@servio.com',
+      from:
+        process.env.RESEND_FROM_EMAIL ||
+        'Servio Notifications <notifications@updates.shamp.io>',
       to: vendor.email,
-      replyTo: ['tickets@servio.com'],
+      replyTo: [
+        process.env.RESEND_REPLY_TO_EMAIL || 'replies@updates.shamp.io',
+      ],
       subject: `[Ticket #${args.ticketId}] ${emailContent.subject}`,
       html:
         emailContent.body +

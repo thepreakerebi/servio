@@ -34,7 +34,9 @@ export const forwardToUser = action({
 
     // Send notification email to user
     await resend.sendEmail(ctx, {
-      from: 'notifications@servio.com',
+      from:
+        process.env.RESEND_FROM_EMAIL ||
+        'Servio Notifications <notifications@updates.shamp.io>',
       to: user.email,
       subject: `Update on Ticket #${args.ticketId}`,
       html: `

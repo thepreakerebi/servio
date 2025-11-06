@@ -4,15 +4,31 @@ import type { Id } from '../_generated/dataModel'
 
 /**
  * Handle inbound email replies from Resend's "Receiving Emails" feature
- * This endpoint receives POST requests when emails are sent to your domain
- * Configure this in Resend dashboard under "Receiving Emails"
+ * This endpoint receives POST requests when emails are sent to your receiving domain
+ * Configure this in Resend dashboard under "Receiving Emails" → Webhooks
+ * 
+ * The webhook event type is "email.received" and includes:
+ * - data.email_id: Unique email ID
+ * - data.from: Sender email address
+ * - data.to: Recipient email addresses
+ * - data.subject: Email subject
+ * - data.body/text/html: Email content
+ * - data.headers: Email headers (In-Reply-To, References, etc.)
  * 
  * Note: This is separate from webhooks which handle outbound email status events
  */
 export const handleInboundEmail = httpAction(async (ctx, request) => {
   try {
-    // Parse the inbound email payload from Resend
-    const payload = await request.json()
+    // Parse the inbound email payload from Resend webhook
+    const event = await request.json()
+
+    // Verify this is an email.received event
+    if (event.type !== 'email.received') {
+      console.warn(`Unexpected event type: ${event.type}`)
+      return new Response('OK', { status: 200 })
+    }
+
+    const payload = event.data || event
 
     // Extract ticket ID from reply email using multiple strategies
     const ticketId = extractTicketIdFromReply(payload)
@@ -94,9 +110,13 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
  * 4. Email body search (fallback): looks for ticket ID patterns
  */
 function extractTicketIdFromReply(payload: any): string | null {
+  // Handle Resend webhook format: event.data contains the email data
+  const eventData = payload.data || payload
+  const headers = eventData.headers || payload.headers || {}
+
   // Strategy 1: Extract from subject line
   // Format: [Ticket #TICKET_ID] or Re: [Ticket #TICKET_ID]
-  const subject = payload.subject || payload.headers?.subject || ''
+  const subject = eventData.subject || payload.subject || headers.subject || ''
   const subjectMatch = subject.match(/\[Ticket #([^\]]+)\]/i)
   if (subjectMatch && subjectMatch[1]) {
     return subjectMatch[1]
@@ -105,8 +125,9 @@ function extractTicketIdFromReply(payload: any): string | null {
   // Strategy 2: Extract from In-Reply-To header
   // Format: <ticket-TICKET_ID-timestamp@domain> or ticket-TICKET_ID-timestamp
   const inReplyTo =
-    payload.headers?.['In-Reply-To'] ||
-    payload.headers?.['in-reply-to'] ||
+    headers['In-Reply-To'] ||
+    headers['in-reply-to'] ||
+    eventData['In-Reply-To'] ||
     payload['In-Reply-To']
   if (inReplyTo) {
     const inReplyToMatch = inReplyTo.match(/ticket-([^-]+)-/)
@@ -118,8 +139,9 @@ function extractTicketIdFromReply(payload: any): string | null {
   // Strategy 3: Extract from References header
   // Format: <ticket-TICKET_ID-timestamp@domain> or ticket-TICKET_ID-timestamp
   const references =
-    payload.headers?.['References'] ||
-    payload.headers?.['references'] ||
+    headers['References'] ||
+    headers['references'] ||
+    eventData.References ||
     payload.References
   if (references) {
     const referencesMatch = references.match(/ticket-([^-]+)-/)
@@ -130,8 +152,9 @@ function extractTicketIdFromReply(payload: any): string | null {
 
   // Strategy 4: Extract from Message-ID header (if it contains ticket pattern)
   const messageId =
-    payload.headers?.['Message-ID'] ||
-    payload.headers?.['message-id'] ||
+    headers['Message-ID'] ||
+    headers['message-id'] ||
+    eventData['Message-ID'] ||
     payload['Message-ID']
   if (messageId) {
     const messageIdMatch = messageId.match(/ticket-([^-]+)-/)
@@ -154,14 +177,21 @@ function extractTicketIdFromReply(payload: any): string | null {
 
 /**
  * Extract email body from inbound email payload
- * Handles different possible structures in Resend inbound email payloads
+ * Handles Resend webhook format for email.received events
+ * According to Resend docs, email content can be in various fields
  */
 function extractEmailBody(payload: any): string | null {
+  // Resend webhook format: data.text or data.html or data.body
+  const eventData = payload.data || payload
+  
   // Try various possible fields for email body
   return (
-    payload.body ||
+    eventData.text ||
+    eventData.html ||
+    eventData.body ||
     payload.text ||
     payload.html ||
+    payload.body ||
     payload.content ||
     payload.message ||
     payload['body-plain'] ||
@@ -172,12 +202,17 @@ function extractEmailBody(payload: any): string | null {
 
 /**
  * Extract email subject from inbound email payload
+ * Handles Resend webhook format for email.received events
  */
 function extractEmailSubject(payload: any): string | null {
+  const eventData = payload.data || payload
+  const headers = eventData.headers || payload.headers || {}
+
   return (
+    eventData.subject ||
     payload.subject ||
-    payload.headers?.subject ||
-    payload.headers?.['Subject'] ||
+    headers.subject ||
+    headers['Subject'] ||
     null
   )
 }
