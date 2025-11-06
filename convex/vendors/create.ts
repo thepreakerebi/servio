@@ -1,5 +1,6 @@
 import { v } from 'convex/values'
 import { mutation } from '../_generated/server'
+import { requireAuth } from '../authHelpers'
 
 export const create = mutation({
   args: {
@@ -11,6 +12,7 @@ export const create = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx)
     const vendorId = await ctx.db.insert('vendors', {
       businessName: args.businessName,
       email: args.email,

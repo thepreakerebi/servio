@@ -20,8 +20,8 @@ export const analyzeTicket = action({
       throw new Error('Not authenticated')
     }
 
-    // Get ticket data
-    const ticket = await ctx.runQuery(internal.tickets.getById, {
+    // Get ticket data using internal query (auth context preserved from action)
+    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
       ticketId: args.ticketId,
     })
 

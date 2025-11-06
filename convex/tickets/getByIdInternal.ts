@@ -1,20 +1,14 @@
 import { v } from 'convex/values'
-import { query } from '../_generated/server'
-import { requireAuth } from '../authHelpers'
+import { internalQuery } from '../_generated/server'
 
-export const getById = query({
+// Internal query version that doesn't require auth
+// Used by mutations and actions that already have auth context
+export const getByIdInternal = internalQuery({
   args: { ticketId: v.id('tickets') },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx)
-    
     const ticket = await ctx.db.get(args.ticketId)
     if (!ticket) {
       return null
-    }
-
-    // Verify user owns the ticket
-    if (ticket.createdBy !== user._id) {
-      throw new Error('Not authorized to access this ticket')
     }
 
     // Get photo URL if photoId exists

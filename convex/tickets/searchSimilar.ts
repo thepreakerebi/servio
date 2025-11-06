@@ -1,7 +1,6 @@
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
 import { internal } from '../_generated/api'
-import { requireAuth } from '../authHelpers'
 
 export const searchSimilar = action({
   args: {
@@ -15,8 +14,8 @@ export const searchSimilar = action({
       throw new Error('Not authenticated')
     }
 
-    // Get ticket embedding
-    const ticket = await ctx.runQuery(internal.tickets.getById, {
+    // Get ticket embedding using internal query (auth context preserved from action)
+    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
       ticketId: args.ticketId,
     })
 
@@ -40,10 +39,10 @@ export const searchSimilar = action({
       (result) => result._id !== args.ticketId,
     )
 
-    // Load ticket details
+    // Load ticket details using internal query
     const tickets = await Promise.all(
       filteredResults.map((result) =>
-        ctx.runQuery(internal.tickets.getById, {
+        ctx.runQuery(internal.tickets.getByIdInternal, {
           ticketId: result._id,
         }),
       ),

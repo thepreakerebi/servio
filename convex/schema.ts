@@ -19,7 +19,7 @@ export default defineSchema({
     issueType: v.optional(v.string()),
     predictedTags: v.array(v.string()),
     description: v.string(),
-    location: v.string(),
+    location: v.optional(v.string()),
     photoId: v.optional(v.id('_storage')),
     createdAt: v.number(),
     status: v.string(),

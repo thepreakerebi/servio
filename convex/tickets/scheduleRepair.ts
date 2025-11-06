@@ -8,7 +8,17 @@ export const scheduleRepair = mutation({
     scheduledDate: v.number(),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx)
+    const user = await requireAuth(ctx)
+
+    // Verify user owns the ticket by querying directly
+    const ticket = await ctx.db.get(args.ticketId)
+    if (!ticket) {
+      throw new Error('Ticket not found')
+    }
+
+    if (ticket.createdBy !== user._id) {
+      throw new Error('Not authorized to schedule repair for this ticket')
+    }
 
     await ctx.db.patch(args.ticketId, {
       scheduledDate: args.scheduledDate,

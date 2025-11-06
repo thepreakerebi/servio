@@ -1,19 +1,20 @@
 import { v } from 'convex/values'
 import OpenAI from 'openai'
-import { action } from '../_generated/server'
+import { internalAction } from '../_generated/server'
 import { internal } from '../_generated/api'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export const generateConversationEmbedding = action({
+// Internal action - called internally, no user context required
+export const generateConversationEmbedding = internalAction({
   args: {
     conversationId: v.id('conversations'),
   },
   handler: async (ctx, args) => {
-    // Get conversation data
-    const conversation = await ctx.runQuery(internal.conversations.getById, {
+    // Get conversation data using internal query
+    const conversation = await ctx.runQuery(internal.conversations.getByIdInternal, {
       conversationId: args.conversationId,
     })
 

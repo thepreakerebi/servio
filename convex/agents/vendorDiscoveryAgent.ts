@@ -19,8 +19,8 @@ export const discoverVendors = action({
       throw new Error('Not authenticated')
     }
 
-    // Get ticket data
-    const ticket = await ctx.runQuery(internal.tickets.getById, {
+    // Get ticket data using internal query (auth context preserved from action)
+    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
       ticketId: args.ticketId,
     })
 
@@ -33,12 +33,16 @@ export const discoverVendors = action({
       throw new Error('Not authorized to discover vendors for this ticket')
     }
 
-    // Get user location
+    // Get user location - prioritize user's location from users table
     const userData = await ctx.runQuery(internal.users.getById, {
       userId: ticket.createdBy,
     })
 
-    const location = userData?.location || ticket.location
+    if (!userData?.location) {
+      throw new Error('User location is required. Please update your profile with a location.')
+    }
+
+    const location = userData.location
 
     // Create tools
     const searchVendors = createSearchVendorsTool(ctx)
@@ -97,8 +101,8 @@ Steps:
   },
 })
 
-function extractVendorsFromSteps(steps: any[]): any[] {
-  const vendors: any[] = []
+function extractVendorsFromSteps(steps: Array<any>): Array<any> {
+  const vendors: Array<any> = []
   for (const step of steps) {
     if (step.toolResults) {
       for (const toolResult of step.toolResults) {

@@ -29,11 +29,11 @@ export const sendVendorEmail = action({
       },
     )
 
-    // Get ticket and vendor data
-    const ticket = await ctx.runQuery(internal.tickets.getById, {
+    // Get ticket and vendor data using internal queries (auth context preserved)
+    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
       ticketId: args.ticketId,
     })
-    const vendor = await ctx.runQuery(internal.vendors.getById, {
+    const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
       vendorId: args.vendorId,
     })
 

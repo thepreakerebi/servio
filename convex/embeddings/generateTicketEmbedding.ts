@@ -1,19 +1,20 @@
 import { v } from 'convex/values'
 import OpenAI from 'openai'
-import { action } from '../_generated/server'
+import { internalAction } from '../_generated/server'
 import { internal } from '../_generated/api'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export const generateTicketEmbedding = action({
+// Internal action - called from schedulers, no user context
+export const generateTicketEmbedding = internalAction({
   args: {
     ticketId: v.id('tickets'),
   },
   handler: async (ctx, args) => {
-    // Get ticket data
-    const ticket = await ctx.runQuery(internal.tickets.getById, {
+    // Get ticket data using internal query (no auth required)
+    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
       ticketId: args.ticketId,
     })
 

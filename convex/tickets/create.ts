@@ -6,7 +6,7 @@ import { internal } from '../_generated/api'
 export const create = mutation({
   args: {
     description: v.string(),
-    location: v.string(),
+    location: v.optional(v.string()),
     photoId: v.id('_storage'),
   },
   handler: async (ctx, args) => {

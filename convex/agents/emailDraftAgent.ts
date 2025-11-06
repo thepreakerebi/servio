@@ -20,8 +20,8 @@ export const draftVendorEmail = action({
       throw new Error('Not authenticated')
     }
 
-    // Get ticket data
-    const ticket = await ctx.runQuery(internal.tickets.getById, {
+    // Get ticket data using internal query (auth context preserved from action)
+    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
       ticketId: args.ticketId,
     })
 
@@ -34,8 +34,8 @@ export const draftVendorEmail = action({
       throw new Error('Not authorized to draft email for this ticket')
     }
 
-    // Get vendor data
-    const vendor = await ctx.runQuery(internal.vendors.getById, {
+    // Get vendor data using internal query (auth context preserved from action)
+    const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
       vendorId: args.vendorId,
     })
 

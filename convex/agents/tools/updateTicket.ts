@@ -37,7 +37,7 @@ export function createUpdateTicketTool(ctx: ActionCtx) {
         })
       }
 
-      const updated = await ctx.runQuery(internal.tickets.getById, {
+      const updated = await ctx.runQuery(internal.tickets.getByIdInternal, {
         ticketId: ticketId as any,
       })
 

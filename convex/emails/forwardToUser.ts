@@ -13,8 +13,10 @@ export const forwardToUser = action({
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    // Get ticket and user data
-    const ticket = await ctx.runQuery(internal.tickets.getById, {
+    // Get ticket and user data using internal query
+    // Note: This is called from webhook handler, auth may not be available
+    // We verify ownership through ticket.createdBy instead
+    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
       ticketId: args.ticketId,
     })
 
