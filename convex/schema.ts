@@ -72,6 +72,7 @@ export default defineSchema({
         specialty: v.string(),
         address: v.string(),
         rating: v.optional(v.number()),
+        vendorId: v.optional(v.id('vendors')), // Optional vendor ID if vendor exists in database
       }),
     ),
     createdAt: v.number(),

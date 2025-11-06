@@ -30,6 +30,7 @@ export function createSearchVendorsTool(ctx: ActionCtx) {
       const searchQuery = `${specialty || tags.join(' ')} ${location} maintenance repair service`
 
       // Call Firecrawl v2 Search API
+      // Docs: https://docs.firecrawl.dev/features/search
       const firecrawlApiKey = process.env.FIRECRAWL_API_KEY
       if (!firecrawlApiKey) {
         throw new Error('FIRECRAWL_API_KEY not configured')
@@ -45,6 +46,9 @@ export function createSearchVendorsTool(ctx: ActionCtx) {
           query: searchQuery,
           limit: 10,
           location: location,
+          // Use 'web' source for standard web results (default)
+          // Can also use ['web', 'news', 'images'] for mixed results
+          sources: ['web'],
         }),
       })
 
@@ -56,6 +60,7 @@ export function createSearchVendorsTool(ctx: ActionCtx) {
       const searchData = await searchResponse.json()
 
       // Parse and extract vendor information from web results
+      // Response format per docs: { success: true, data: { web: [...], images: [...], news: [...] } }
       const webResults = searchData.data?.web || []
       let vendors = webResults.map((result: any) => ({
         businessName: result.title || 'Unknown',
@@ -65,9 +70,12 @@ export function createSearchVendorsTool(ctx: ActionCtx) {
         address: result.metadata?.address || location,
         rating: result.metadata?.rating,
         url: result.url,
+        description: result.description,
+        position: result.position, // Include position for ranking
       }))
 
       // Optionally use Extract API to get detailed vendor information
+      // Docs: https://docs.firecrawl.dev/features/extract
       if (extractDetails && vendors.length > 0) {
         const extractUrls = vendors
           .filter((v: { url?: string }) => v.url)
@@ -102,13 +110,17 @@ export function createSearchVendorsTool(ctx: ActionCtx) {
                       rating: { type: 'number' },
                     },
                   },
+                  // Note: Can use agent: { model: 'FIRE-1' } for better extraction (costs more)
+                  // Leaving it out for cost efficiency - uses default agent
                 }),
               },
             )
 
             if (extractResponse.ok) {
               const extractData = await extractResponse.json()
-              // Merge extracted data with search results
+              // Extract API response format per docs:
+              // Multiple URLs: { success: true, data: [{...}, {...}] }
+              // Single URL: { success: true, data: {...} }
               if (extractData.data) {
                 const extractedVendors = Array.isArray(extractData.data)
                   ? extractData.data
@@ -123,6 +135,8 @@ export function createSearchVendorsTool(ctx: ActionCtx) {
                       address: string
                       rating?: number
                       url?: string
+                      description?: string
+                      position?: number
                     },
                     index: number,
                   ) => {
@@ -143,6 +157,12 @@ export function createSearchVendorsTool(ctx: ActionCtx) {
                   },
                 )
               }
+            } else {
+              // Log error but continue with search results
+              const errorText = await extractResponse.text()
+              console.error(
+                `Firecrawl Extract API error: ${extractResponse.statusText} - ${errorText}`,
+              )
             }
           } catch (error) {
             // If Extract API fails, continue with search results

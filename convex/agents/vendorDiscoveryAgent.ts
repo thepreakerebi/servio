@@ -8,6 +8,21 @@ import { internal } from '../_generated/api'
 import { createSearchVendorsTool } from './tools/searchVendors'
 import { createUpdateTicketTool } from './tools/updateTicket'
 
+// Shared vendor result type for consistent shape across database and web search results
+type VendorResult = {
+  businessName: string
+  email?: string
+  phone?: string
+  specialty: string
+  address: string
+  rating?: number
+  vendorId?: string // Only present for existing database vendors
+  url?: string // Only present for web search results
+  description?: string
+  position?: number
+  services?: Array<string>
+}
+
 export const discoverVendors = action({
   args: {
     ticketId: v.id('tickets'),
@@ -44,6 +59,65 @@ export const discoverVendors = action({
 
     const location = userData.location
 
+    // First, check if there are existing vendors in the database that match
+    // Wrap in try-catch to handle errors gracefully and fall back to web search
+    let existingVendors: Array<any> = []
+    try {
+      existingVendors = await ctx.runAction(internal.vendors.searchExisting, {
+        ticketId: args.ticketId,
+        limit: 5,
+      })
+    } catch (error) {
+      // Log error but continue with web search fallback
+      console.error(
+        `Error searching existing vendors for ticket ${args.ticketId}:`,
+        error,
+      )
+      existingVendors = []
+    }
+
+    // If we found existing vendors, return them without searching
+    if (existingVendors.length > 0) {
+      // Convert to consistent VendorResult format
+      const vendorResults: Array<VendorResult> = existingVendors.map(
+        (vendor: (typeof existingVendors)[number]) => ({
+          businessName: vendor.businessName,
+          email: vendor.email,
+          phone: vendor.phone,
+          specialty: vendor.specialty,
+          address: vendor.address,
+          rating: vendor.rating,
+          vendorId: vendor._id, // Include vendor ID since it's an existing vendor
+          // Explicitly set undefined fields for consistency
+          url: undefined,
+          description: undefined,
+          position: undefined,
+          services: undefined,
+        }),
+      )
+
+      // Store results (even though they're existing vendors, we still want to track the discovery)
+      const firecrawlResultsId = await ctx.runMutation(
+        internal.firecrawlResults.store,
+        {
+          ticketId: args.ticketId,
+          results: vendorResults,
+        },
+      )
+
+      await ctx.runMutation(internal.tickets.update, {
+        ticketId: args.ticketId,
+        firecrawlResultsId,
+      })
+
+      return {
+        vendors: vendorResults,
+        source: 'database',
+        text: `Found ${existingVendors.length} existing vendor(s) in database matching this ticket.`,
+      }
+    }
+
+    // No existing vendors found, proceed with web search
     // Create tools
     const searchVendors = createSearchVendorsTool(ctx)
     const updateTicket = createUpdateTicketTool(ctx)
@@ -96,13 +170,14 @@ Steps:
 
     return {
       vendors: vendorResults,
+      source: 'web_search',
       text: result.text,
     }
   },
 })
 
-function extractVendorsFromSteps(steps: Array<any>): Array<any> {
-  const vendors: Array<any> = []
+function extractVendorsFromSteps(steps: Array<any>): Array<VendorResult> {
+  const vendors: Array<VendorResult> = []
   for (const step of steps) {
     if (step.toolResults) {
       for (const toolResult of step.toolResults) {
@@ -110,7 +185,24 @@ function extractVendorsFromSteps(steps: Array<any>): Array<any> {
           toolResult.toolName === 'searchVendors' &&
           toolResult.result?.vendors
         ) {
-          vendors.push(...toolResult.result.vendors)
+          // Map web search vendors to VendorResult format
+          const webVendors: Array<VendorResult> = toolResult.result.vendors.map(
+            (vendor: any) => ({
+              businessName: vendor.businessName || 'Unknown',
+              email: vendor.email,
+              phone: vendor.phone,
+              specialty: vendor.specialty || 'General',
+              address: vendor.address || '',
+              rating: vendor.rating,
+              url: vendor.url,
+              description: vendor.description,
+              position: vendor.position,
+              services: vendor.services,
+              // vendorId is undefined for web search results
+              vendorId: undefined,
+            }),
+          )
+          vendors.push(...webVendors)
         }
       }
     }
