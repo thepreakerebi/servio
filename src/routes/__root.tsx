@@ -2,10 +2,11 @@ import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/reac
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
-
 import appCss from '../styles.css?url'
 
 import type { QueryClient } from '@tanstack/react-query'
+
+import { cn } from '@/lib/utils'
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
@@ -20,10 +21,23 @@ export const Route = createRootRouteWithContext<{
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Servio - Hospitality Maintenance',
       },
     ],
     links: [
+      {
+        rel: 'preconnect',
+        href: 'https://fonts.googleapis.com',
+      },
+      {
+        rel: 'preconnect',
+        href: 'https://fonts.gstatic.com',
+        crossOrigin: 'anonymous',
+      },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap',
+      },
       {
         rel: 'stylesheet',
         href: appCss,
@@ -40,8 +54,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
-        {children}
+      <body className={cn('text-base antialiased', 'font-sans')}>
+        <main className="isolate">
+          {children}
+        </main>
         <TanStackDevtools
           config={{
             position: 'bottom-right',
