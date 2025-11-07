@@ -12,6 +12,7 @@ export default defineSchema({
     orgName: v.optional(v.string()),
     location: v.optional(v.string()),
     createdAt: v.number(),
+    onboardingCompleted: v.optional(v.boolean()),
   }).index('by_email', ['email']),
 
   tickets: defineTable({

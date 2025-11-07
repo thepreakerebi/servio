@@ -1,13 +1,16 @@
 import Google from '@auth/core/providers/google'
-import Email from '@auth/core/providers/email'
+import Resend from '@auth/core/providers/resend'
 import { convexAuth } from '@convex-dev/auth/server'
 import type { MutationCtx } from './_generated/server'
 
 /**
- * Convex Auth configuration with Google OAuth and Magic Links
+ * Convex Auth configuration with Google OAuth and Magic Links (Resend)
  * References:
  * - https://labs.convex.dev/auth/config/oauth/google
- * - https://labs.convex.dev/auth/config/magic-links
+ * - https://labs.convex.dev/auth/config/email
+ * 
+ * Resend provider uses AUTH_RESEND_KEY environment variable
+ * Set via: npx convex env set AUTH_RESEND_KEY yourresendkey
  */
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
@@ -21,17 +24,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         }
       },
     }),
-    Email({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT) || 587,
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
-      },
-      from: process.env.EMAIL_FROM || 'noreply@servio.com',
-    }),
+    Resend,
   ],
   /**
    * Callback: Sync user data to our custom users table after user is created/updated
@@ -70,11 +63,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           name: name ?? existing.name,
         })
       } else {
-        // Create new user
+        // Create new user with onboardingCompleted: false
         await ctx.db.insert('users', {
           email,
           name: name ?? undefined,
           createdAt: Date.now(),
+          onboardingCompleted: false,
         })
       }
     },
