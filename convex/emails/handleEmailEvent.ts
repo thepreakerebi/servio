@@ -1,3 +1,4 @@
+'use node'
 import { vEmailId } from '@convex-dev/resend'
 import { v } from 'convex/values'
 import { internalMutation } from '../_generated/server'

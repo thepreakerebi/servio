@@ -1,3 +1,5 @@
+'use node'
+
 import { Resend } from '@convex-dev/resend'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'

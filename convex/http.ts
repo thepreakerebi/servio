@@ -1,8 +1,5 @@
 import { httpRouter } from 'convex/server'
 import { httpAction } from './_generated/server'
-import { handleWebhook } from './emails/handleWebhook'
-import { handleInboundEmail } from './emails/handleInboundEmail'
-import { uploadPhoto } from './files/uploadPhoto'
 import { internal } from './_generated/api'
 
 const http = httpRouter()
@@ -139,14 +136,22 @@ http.route({
 http.route({
   path: '/upload-photo',
   method: 'POST',
-  handler: uploadPhoto,
+  handler: httpAction(async (ctx, request) => {
+    // Import Node.js module inside handler to avoid bundling issues
+    const uploadPhotoModule = await import('./files/uploadPhoto')
+    return await (uploadPhotoModule.uploadPhoto as any)(ctx, request)
+  }),
 })
 
 // Resend webhook endpoint for outbound email status events
 http.route({
   path: '/resend-webhook',
   method: 'POST',
-  handler: handleWebhook,
+  handler: httpAction(async (ctx, request) => {
+    // Import Node.js module inside handler to avoid bundling issues
+    const webhookModule = await import('./emails/handleWebhook')
+    return await (webhookModule.handleWebhook as any)(ctx, request)
+  }),
 })
 
 // Resend inbound email endpoint for receiving email replies
@@ -154,7 +159,11 @@ http.route({
 http.route({
   path: '/resend-inbound',
   method: 'POST',
-  handler: handleInboundEmail,
+  handler: httpAction(async (ctx, request) => {
+    // Import Node.js module inside handler to avoid bundling issues
+    const inboundModule = await import('./emails/handleInboundEmail')
+    return await (inboundModule.handleInboundEmail as any)(ctx, request)
+  }),
 })
 
 export default http

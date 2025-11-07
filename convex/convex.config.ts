@@ -1,3 +1,5 @@
+'use node'
+
 import { defineApp } from 'convex/server'
 import resend from '@convex-dev/resend/convex.config'
 
