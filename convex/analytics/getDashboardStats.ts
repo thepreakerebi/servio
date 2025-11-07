@@ -1,3 +1,4 @@
+import { v } from 'convex/values'
 import { query } from '../_generated/server'
 import { requireAuth } from '../authHelpers'
 import type { Doc, Id } from '../_generated/dataModel'
@@ -7,9 +8,12 @@ import type { Doc, Id } from '../_generated/dataModel'
  * Returns ticket counts, average response/fix times, most used vendor, and quote statistics
  */
 export const getDashboardStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireAuth(ctx)
+  args: {
+    token: v.string(), // JWT token - verified server-side for security
+  },
+  handler: async (ctx, args) => {
+    // Verify token server-side and get authenticated user
+    const user = await requireAuth(ctx, args.token)
 
     // Get all tickets for the user
     const tickets = await ctx.db
@@ -53,7 +57,7 @@ export const getDashboardStats = query({
 
     // Calculate average quote price (only for received quotes)
     const receivedQuotes = quotes.filter((q) => q.status === 'received')
-    const quotePrices = receivedQuotes.map((q) => q.price)
+    const quotePrices = receivedQuotes.map((q) => q.price)  
     const averageQuotePrice =
       quotePrices.length > 0
         ? Math.round(

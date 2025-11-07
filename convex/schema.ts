@@ -1,31 +1,20 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
-import { authTables } from '@convex-dev/auth/server'
 
 export default defineSchema({
-  ...authTables,
-  // Override auth_users table to add email index required by Convex Auth
-  auth_users: defineTable({
-    email: v.optional(v.string()),
-    emailVerified: v.optional(v.boolean()),
-    name: v.optional(v.string()),
-    image: v.optional(v.string()),
-  }).index('email', ['email']),
-  // Users table extends auth_users with custom fields
-  // Synced via auth callbacks in auth.ts
-  // Note: Convex Auth requires an index named 'email' on the 'users' table
+  // Users table for custom authentication
   users: defineTable({
     email: v.string(),
     name: v.optional(v.string()),
     orgName: v.optional(v.string()),
     location: v.optional(v.string()),
+    profilePic: v.optional(v.string()), // URL to profile picture
+    googleId: v.optional(v.string()), // Google OAuth ID
     createdAt: v.number(),
     onboardingCompleted: v.optional(v.boolean()),
-    emailVerificationTime: v.optional(v.number()), // Required by Convex Auth
-    phoneVerificationTime: v.optional(v.number()), // Required by Convex Auth
   })
-    .index('email', ['email']) // Required by Convex Auth - must be named 'email'
-    .index('by_email', ['email']), // Our custom index for queries
+    .index('by_email', ['email'])
+    .index('by_googleId', ['googleId']),
 
   tickets: defineTable({
     createdBy: v.id('users'),

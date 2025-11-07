@@ -109,7 +109,7 @@ export const discoverVendors = action({
         (vendor: Doc<'vendors'>) => ({
           businessName: vendor.businessName,
           email: vendor.email,
-          phone: vendor.phone,
+          phone: vendor.phone,  
           specialty: vendor.specialty,
           address: vendor.address,
           rating: vendor.rating,

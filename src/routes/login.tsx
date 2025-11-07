@@ -16,7 +16,7 @@ export const Route = createFileRoute('/login')({
 
 function LoginPage() {
   const navigate = useNavigate()
-  const { signInWithGoogle, signInWithMagicLink, isLoading, error, isAuthenticated, user } = useAuth()
+  const { signInWithGoogle, isLoading, error, isAuthenticated, user } = useAuth()
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState<string | null>(null)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
@@ -123,7 +123,8 @@ function LoginPage() {
                 <Separator className="flex-1" />
               </section>
 
-              {/* Magic Link Form */}
+              {/* Magic Link Form - Temporarily disabled */}
+              {/* 
               <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
                 <fieldset className="space-y-2">
                   <Label htmlFor="email">Email address</Label>
@@ -161,6 +162,7 @@ function LoginPage() {
                   {isLoading ? 'Sending...' : 'Continue with email'}
                 </Button>
               </form>
+              */}
             </section>
           )}
           </section>

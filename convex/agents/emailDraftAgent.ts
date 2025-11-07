@@ -4,13 +4,14 @@ import { Experimental_Agent as Agent, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { internal, api } from '../_generated/api'
+import {  
+  EMAIL_DRAFT_SYSTEM_PROMPT, 
+  getEmailDraftPrompt,
+} from '../prompts/emailDraft'  
+import { api, internal } from '../_generated/api'
 import { createDraftEmailTool } from './tools/draftEmail'
 import { createUpdateTicketTool } from './tools/updateTicket'
-import {
-  EMAIL_DRAFT_SYSTEM_PROMPT,
-  getEmailDraftPrompt,
-} from '../prompts/emailDraft'
+
 import type { Doc } from '../_generated/dataModel'
 
 export const draftVendorEmail = action({

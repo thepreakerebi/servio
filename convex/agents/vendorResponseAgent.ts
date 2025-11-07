@@ -31,7 +31,7 @@ export const parseVendorResponse = action({
     estimatedDeliveryTime?: number
     ratings?: number
     notes?: string
-    isDeclining: boolean
+    isDeclining: boolean  
     declineReason?: string
   }> => {
     // Get ticket and vendor data

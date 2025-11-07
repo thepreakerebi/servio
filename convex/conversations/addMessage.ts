@@ -4,19 +4,21 @@ import { requireAuth } from '../authHelpers'
 
 export const addMessage = mutation({
   args: {
+    token: v.string(), // JWT token - verified server-side for security
     conversationId: v.id('conversations'),
     sender: v.union(v.literal('user'), v.literal('agent'), v.literal('vendor')),
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx)
+    // Verify token server-side and get authenticated user
+    const user = await requireAuth(ctx, args.token)
 
     const conversation = await ctx.db.get(args.conversationId)
     if (!conversation) {
       throw new Error('Conversation not found')
     }
 
-    // Verify user owns the ticket (unless sender is agent/vendor)
+    // Verify user owns the ticket (unless sender is agent/vendor)  
     if (args.sender === 'user') {
       const ticket = await ctx.db.get(conversation.ticketId)
       if (!ticket || ticket.createdBy !== user._id) {

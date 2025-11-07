@@ -6,7 +6,9 @@ import { z } from 'zod'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
 import { api, internal } from '../_generated/api'
-import { getVendorConversationPrompt } from '../prompts/vendorConversation'
+import {  
+  getVendorConversationPrompt,
+} from '../prompts/vendorConversation'
 import type { Doc } from '../_generated/dataModel'
 
 /**

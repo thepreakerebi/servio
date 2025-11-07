@@ -24,7 +24,7 @@ export function createSearchVendorsTool() {
       const searchQuery = `${specialty || tags.join(' ')} ${location} maintenance repair service`
 
       // Call Firecrawl v2 Search API to discover vendor URLs
-      // Docs: https://docs.firecrawl.dev/features/search
+      // Docs: https://docs.firecrawl.dev/features/search  
       const firecrawlApiKey = process.env.FIRECRAWL_API_KEY
       if (!firecrawlApiKey) {
         throw new Error('FIRECRAWL_API_KEY not configured')

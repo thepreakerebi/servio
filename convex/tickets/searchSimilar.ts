@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { internal, api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import type { Doc, Id } from '../_generated/dataModel'
 
 export const searchSimilar = action({

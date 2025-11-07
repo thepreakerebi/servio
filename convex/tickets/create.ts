@@ -6,12 +6,14 @@ import type { Id } from '../_generated/dataModel'
 
 export const create = mutation({
   args: {
+    token: v.string(), // JWT token - verified server-side for security
     description: v.string(),
     location: v.optional(v.string()),
     photoId: v.id('_storage'),
   },
   handler: async (ctx, args): Promise<Id<'tickets'>> => {
-    const user = await requireAuth(ctx)
+    // Verify token server-side and get authenticated user
+    const user = await requireAuth(ctx, args.token)
 
     const ticketId = await ctx.db.insert('tickets', {
       createdBy: user._id,

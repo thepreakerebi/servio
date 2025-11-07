@@ -4,6 +4,7 @@ import { requireAuth } from '../authHelpers'
 
 export const store = mutation({
   args: {
+    token: v.string(), // JWT token - verified server-side for security
     ticketId: v.id('tickets'),
     results: v.array(
       v.object({
@@ -19,7 +20,8 @@ export const store = mutation({
   handler: async (ctx, args) => {
     // Note: This is typically called by internal agents, but we add auth check for safety
     // In production, consider making this internalMutation if only called internally
-    const user = await requireAuth(ctx)
+    // Verify token server-side and get authenticated user
+    const user = await requireAuth(ctx, args.token)
     
     // Verify user owns the ticket by querying directly
     const ticket = await ctx.db.get(args.ticketId)

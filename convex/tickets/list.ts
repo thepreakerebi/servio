@@ -4,13 +4,15 @@ import { requireAuth } from '../authHelpers'
 
 export const list = query({
   args: {
+    token: v.string(), // JWT token - verified server-side for security
     status: v.optional(v.string()),
     location: v.optional(v.string()),
     tag: v.optional(v.string()),
     vendorId: v.optional(v.id('vendors')),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx)
+    // Verify token server-side and get authenticated user
+    const user = await requireAuth(ctx, args.token)
 
     let tickets
 

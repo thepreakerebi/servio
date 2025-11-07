@@ -60,7 +60,7 @@ export const generateVendorQuoteEmbedding = internalAction({
       quote.currency === 'USD' || quote.currency === 'EUR' || quote.currency === 'GBP'
         ? `${quote.price / 100} ${quote.currency}`
         : `${quote.price} ${quote.currency}`
-    const deliveryTimeFormatted: string = `${quote.estimatedDeliveryTime} hours`
+    const deliveryTimeFormatted = `${quote.estimatedDeliveryTime} hours`  
     const ratingText: string = quote.ratings ? `${quote.ratings}/5 rating` : ''
 
     const embeddingText: string = [

@@ -1,11 +1,34 @@
-import { httpAction } from '../_generated/server'
-import { auth } from '../auth'
+'use node'
 
+import { httpAction } from '../_generated/server'
+import { verifyToken } from '../users/jwt'
+
+/**
+ * Upload photo endpoint
+ * Requires JWT authentication via Authorization header
+ */
 export const uploadPhoto = httpAction(async (ctx, request) => {
-  // Require authentication
-  const authUserId = await auth.getUserId(ctx)
-  if (!authUserId) {
-    return new Response('Unauthorized', { status: 401 })
+  // Get JWT token from Authorization header
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response('Unauthorized - Missing or invalid token', { status: 401 })
+  }
+
+  const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+  const decoded = verifyToken(token)
+
+  if (!decoded || !decoded.userId) {
+    return new Response('Unauthorized - Invalid token', { status: 401 })
+  }
+
+  // Verify user exists
+  const user = await ctx.runQuery(
+    (await import('../_generated/api')).internal.users.getByIdInternal as any,
+    { userId: decoded.userId as any },
+  )
+
+  if (!user) {
+    return new Response('Unauthorized - User not found', { status: 401 })
   }
 
   const formData = await request.formData()

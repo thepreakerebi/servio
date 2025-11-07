@@ -71,6 +71,8 @@ import type * as tickets_updateInternal from "../tickets/updateInternal.js";
 import type * as tickets_updateStatus from "../tickets/updateStatus.js";
 import type * as users_getById from "../users/getById.js";
 import type * as users_getCurrent from "../users/getCurrent.js";
+import type * as users_googleAuth from "../users/googleAuth.js";
+import type * as users_signIn from "../users/signIn.js";
 import type * as users_updateProfile from "../users/updateProfile.js";
 import type * as vendorOutreach_create from "../vendorOutreach/create.js";
 import type * as vendorOutreach_getByEmailId from "../vendorOutreach/getByEmailId.js";
@@ -177,6 +179,8 @@ declare const fullApi: ApiFromModules<{
   "tickets/updateStatus": typeof tickets_updateStatus;
   "users/getById": typeof users_getById;
   "users/getCurrent": typeof users_getCurrent;
+  "users/googleAuth": typeof users_googleAuth;
+  "users/signIn": typeof users_signIn;
   "users/updateProfile": typeof users_updateProfile;
   "vendorOutreach/create": typeof vendorOutreach_create;
   "vendorOutreach/getByEmailId": typeof vendorOutreach_getByEmailId;

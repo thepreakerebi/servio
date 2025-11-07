@@ -17,7 +17,7 @@ export const rankVendors = action({
   handler: async (
     ctx,
     args,
-  ): Promise<{
+  ): Promise<{  
     rankedQuotes: Array<Doc<'vendorQuotes'> & { score: number }>
   }> => {
     // Get all received quotes for this ticket

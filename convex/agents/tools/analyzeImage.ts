@@ -3,7 +3,6 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import OpenAI from 'openai'
-import { internal } from '../../_generated/api'
 import type { ActionCtx } from '../../_generated/server'
 
 const openai = new OpenAI({

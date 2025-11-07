@@ -3,9 +3,13 @@ import { query } from '../_generated/server'
 import { requireAuth } from '../authHelpers'
 
 export const getById = query({
-  args: { ticketId: v.id('tickets') },
+  args: {
+    token: v.string(), // JWT token - verified server-side for security
+    ticketId: v.id('tickets'),
+  },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx)
+    // Verify token server-side and get authenticated user
+    const user = await requireAuth(ctx, args.token)
     
     const ticket = await ctx.db.get(args.ticketId)
     if (!ticket) {
