@@ -4,7 +4,7 @@ import { Experimental_Agent as Agent, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { internal } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import {
   TICKET_ANALYSIS_SYSTEM_PROMPT,
   getTicketAnalysisPrompt,
@@ -12,22 +12,32 @@ import {
 import { createAnalyzeImageTool } from './tools/analyzeImage'
 import { createClassifyIssueTool } from './tools/classifyIssue'
 import { createUpdateTicketTool } from './tools/updateTicket'
+import type { Doc } from '../_generated/dataModel'
 
 export const analyzeTicket = action({
   args: {
     ticketId: v.id('tickets'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    text: string
+    steps: Array<any>
+  }> => {
     // Require authentication
-    const user = await ctx.runQuery(internal.users.getCurrent, {})
+    const user: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getCurrent as any,
+      {},
+    )
     if (!user) {
       throw new Error('Not authenticated')
     }
 
     // Get ticket data using internal query (auth context preserved from action)
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
@@ -73,7 +83,7 @@ export const analyzeTicket = action({
     // Trigger embedding generation after analysis
     await ctx.scheduler.runAfter(
       0,
-      internal.embeddings.generateTicketEmbedding,
+      internal.embeddings.generateTicketEmbedding as any,
       {
         ticketId: args.ticketId,
       },

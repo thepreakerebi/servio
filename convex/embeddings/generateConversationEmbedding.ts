@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import OpenAI from 'openai'
 import { internalAction } from '../_generated/server'
 import { internal } from '../_generated/api'
+import type { Doc } from '../_generated/dataModel'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,18 +13,21 @@ export const generateConversationEmbedding = internalAction({
   args: {
     conversationId: v.id('conversations'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Array<number>> => {
     // Get conversation data using internal query
-    const conversation = await ctx.runQuery(internal.conversations.getByIdInternal, {
-      conversationId: args.conversationId,
-    })
+    const conversation: Doc<'conversations'> | null = await ctx.runQuery(
+      internal.conversations.getByIdInternal as any,
+      {
+        conversationId: args.conversationId,
+      },
+    )
 
     if (!conversation) {
       throw new Error('Conversation not found')
     }
 
     // Create embedding text from all messages
-    const embeddingText = conversation.messages
+    const embeddingText: string = conversation.messages
       .map((msg: { message: string }) => msg.message)
       .join(' ')
 
@@ -37,10 +41,10 @@ export const generateConversationEmbedding = internalAction({
       input: embeddingText,
     })
 
-    const embedding = response.data[0].embedding
+    const embedding: Array<number> = response.data[0].embedding
 
     // Update conversation with embedding
-    await ctx.runMutation(internal.embeddings.updateConversationEmbedding, {
+    await ctx.runMutation(internal.embeddings.updateConversationEmbedding as any, {
       conversationId: args.conversationId,
       embedding,
     })

@@ -1,6 +1,6 @@
 import { query } from '../_generated/server'
 import { requireAuth } from '../authHelpers'
-import type { Id } from '../_generated/dataModel'
+import type { Doc, Id } from '../_generated/dataModel'
 
 /**
  * Get dashboard analytics/KPIs for the authenticated user
@@ -26,7 +26,7 @@ export const getDashboardStats = query({
 
     // Get all quotes for user's tickets
     const ticketIds = tickets.map((t) => t._id)
-    const allQuotes = await Promise.all(
+    const allQuotes: Array<Array<Doc<'vendorQuotes'>>> = await Promise.all(
       ticketIds.map(async (ticketId) => {
         return await ctx.db
           .query('vendorQuotes')
@@ -34,7 +34,7 @@ export const getDashboardStats = query({
           .collect()
       }),
     )
-    const quotes = allQuotes.flat()
+    const quotes: Array<Doc<'vendorQuotes'>> = allQuotes.flat()
 
     // Calculate quote statistics
     const newQuotesCount = quotes.filter((q) => q.status === 'received').length

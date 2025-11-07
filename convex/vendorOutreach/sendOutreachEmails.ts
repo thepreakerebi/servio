@@ -3,11 +3,12 @@
 import { Resend } from '@convex-dev/resend'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { components, internal } from '../_generated/api'
+import { api, components, internal } from '../_generated/api'   
+import type { Doc, Id } from '../_generated/dataModel'
 
 const resend = new Resend((components as any).resend, {
   testMode: process.env.NODE_ENV !== 'production',
-  onEmailEvent: internal.emails.handleEmailEvent,
+  onEmailEvent: internal.emails.handleEmailEvent as any,
 })
 
 /**
@@ -18,17 +19,31 @@ export const sendOutreachEmails = action({
   args: {
     ticketId: v.id('tickets'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    sent: number
+    failed: number
+    results: Array<{
+      vendorId: string
+      emailId?: string
+      error?: string
+    }>
+  }> => {
     // Require authentication
-    const user = await ctx.runQuery(internal.users.getCurrent, {})
+    const user: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getCurrent as any,
+      {},
+    )
     if (!user) {
       throw new Error('Not authenticated')
     }
 
     // Get ticket data
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
@@ -44,8 +59,8 @@ export const sendOutreachEmails = action({
       throw new Error('No vendor discovery results found for this ticket')
     }
 
-    const firecrawlResults = await ctx.runQuery(
-      internal.firecrawlResults.getById,
+    const firecrawlResults: Doc<'firecrawlResults'> | null = await ctx.runQuery(
+      internal.firecrawlResults.getById as any,
       {
         resultId: ticket.firecrawlResultsId,
       },
@@ -61,15 +76,18 @@ export const sendOutreachEmails = action({
     }
 
     // Get user location
-    const userData = await ctx.runQuery(internal.users.getById, {
-      userId: ticket.createdBy,
-    })
-    const location = userData?.location || ticket.location || 'Not specified'
+    const userData: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getById as any,
+      {
+        userId: ticket.createdBy,
+      },
+    )
+    const location: string = userData?.location || ticket.location || 'Not specified'
 
     // Create or get conversation
-    let conversationId = ticket.conversationId
+    let conversationId: Id<'conversations'> | undefined = ticket.conversationId
     if (!conversationId) {
-      conversationId = await ctx.runMutation(internal.conversations.create, {
+      conversationId = await ctx.runMutation(api.conversations.create as any, {
         ticketId: args.ticketId,
       })
     }
@@ -82,7 +100,7 @@ export const sendOutreachEmails = action({
     }> = []
 
     // Set expiration time (72 hours from now)
-    const expiresAt = Date.now() + 72 * 60 * 60 * 1000
+    const expiresAt: number = Date.now() + 72 * 60 * 60 * 1000
 
     for (const vendorResult of firecrawlResults.results) {
       try {
@@ -96,12 +114,12 @@ export const sendOutreachEmails = action({
         }
 
         // Get or create vendor in database
-        let vendorId: string
+        let vendorId: Id<'vendors'>
         if (vendorResult.vendorId) {
-          vendorId = vendorResult.vendorId
+          vendorId = vendorResult.vendorId as Id<'vendors'>
         } else {
           // Create vendor if doesn't exist
-          vendorId = await ctx.runMutation(internal.vendors.create, {
+          vendorId = await ctx.runMutation(api.vendors.create as any, {
             businessName: vendorResult.businessName,
             email: vendorResult.email,
             phone: vendorResult.phone,
@@ -113,7 +131,7 @@ export const sendOutreachEmails = action({
 
         // Draft email using agent
         const emailContent = await ctx.runAction(
-          internal.agents.emailDraftAgent.draftVendorEmail,
+          api.agents.emailDraftAgent.draftVendorEmail as any,
           {
             ticketId: args.ticketId,
             vendorId,
@@ -121,13 +139,16 @@ export const sendOutreachEmails = action({
         )
 
         // Get vendor data
-        const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
-          vendorId,
-        })
+        const vendor: Doc<'vendors'> | null = await ctx.runQuery(
+          internal.vendors.getByIdInternal as any,
+          {
+            vendorId,
+          },
+        )
 
         if (!vendor) {
           outreachResults.push({
-            vendorId,
+            vendorId: vendorId as string,
             error: 'Vendor not found',
           })
           continue
@@ -139,7 +160,7 @@ export const sendOutreachEmails = action({
           vendor.emailStatus === 'bounced'
         ) {
           outreachResults.push({
-            vendorId,
+            vendorId: vendorId as string,
             error: `Email status: ${vendor.emailStatus}`,
           })
           continue
@@ -161,38 +182,41 @@ export const sendOutreachEmails = action({
         })
 
         // Store email mapping
-        await ctx.runMutation(internal.emails.storeEmailMapping, {
+        await ctx.runMutation(internal.emails.storeEmailMapping as any, {
           emailId: emailId as string,
           ticketId: args.ticketId,
           vendorId,
         })
 
         // Create outreach record
-        const outreachId = await ctx.runMutation(internal.vendorOutreach.create, {
-          ticketId: args.ticketId,
-          vendorId,
-          emailId: emailId as string,
-          expiresAt,
-        })
+        const outreachId: Id<'vendorOutreach'> = await ctx.runMutation(
+          internal.vendorOutreach.create as any,
+          {
+            ticketId: args.ticketId,
+            vendorId,
+            emailId: emailId as string,
+            expiresAt,
+          },
+        )
 
         // Schedule embedding generation for vendor outreach
         await ctx.scheduler.runAfter(
           0,
-          internal.embeddings.generateVendorOutreachEmbedding,
+          internal.embeddings.generateVendorOutreachEmbedding as any,
           {
             outreachId,
           },
         )
 
         // Add message to conversation
-        await ctx.runMutation(internal.conversations.addMessage, {
+        await ctx.runMutation(api.conversations.addMessage as any, {
           conversationId,
           sender: 'agent',
           message: `Quote request sent to ${vendor.businessName}`,
         })
 
         outreachResults.push({
-          vendorId,
+          vendorId: vendorId as string,
           emailId: emailId as string,
         })
       } catch (error) {
@@ -208,15 +232,15 @@ export const sendOutreachEmails = action({
     }
 
     // Update ticket status and quote status only if at least one email was sent successfully
-    const successfulSends = outreachResults.filter((r) => r.emailId).length
+    const successfulSends: number = outreachResults.filter((r) => r.emailId).length
 
     if (successfulSends > 0) {
-      await ctx.runMutation(internal.tickets.updateStatus, {
+      await ctx.runMutation(api.tickets.updateStatus as any, {
         ticketId: args.ticketId,
         status: 'Awaiting Vendor',
       })
 
-      await ctx.runMutation(internal.tickets.updateInternal, {
+      await ctx.runMutation(internal.tickets.updateInternal as any, {
         ticketId: args.ticketId,
         quoteStatus: 'awaiting_quotes',
       })

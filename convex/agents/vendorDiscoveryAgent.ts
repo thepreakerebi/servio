@@ -4,13 +4,14 @@ import { Experimental_Agent as Agent, stepCountIs } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { internal } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import {
   VENDOR_DISCOVERY_SYSTEM_PROMPT,
   getVendorDiscoveryPrompt,
 } from '../prompts/vendorDiscovery'
 import { createSearchVendorsTool } from './tools/searchVendors'
 import { createUpdateTicketTool } from './tools/updateTicket'
+import type { Doc, Id } from '../_generated/dataModel'
 
 // Shared vendor result type for consistent shape across database and web search results
 type VendorResult = {
@@ -31,17 +32,27 @@ export const discoverVendors = action({
   args: {
     ticketId: v.id('tickets'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    vendors: Array<VendorResult>
+    source: 'database' | 'web_search'
+    text: string
+  }> => {
     // Require authentication
-    const user = await ctx.runQuery(internal.users.getCurrent, {})
+    const user: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getCurrent as any,
+      {},
+    )
     if (!user) {
       throw new Error('Not authenticated')
     }
 
     // Get ticket data using internal query (auth context preserved from action)
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
@@ -53,24 +64,30 @@ export const discoverVendors = action({
     }
 
     // Get user location - prioritize user's location from users table
-    const userData = await ctx.runQuery(internal.users.getById, {
-      userId: ticket.createdBy,
-    })
+    const userData: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getById as any,
+      {
+        userId: ticket.createdBy,
+      },
+    )
 
     if (!userData?.location) {
       throw new Error('User location is required. Please update your profile with a location.')
     }
 
-    const location = userData.location
+    const location: string = userData.location
 
     // First, check if there are existing vendors in the database that match
     // Wrap in try-catch to handle errors gracefully and fall back to web search
-    let existingVendors: Array<any> = []
+    let existingVendors: Array<Doc<'vendors'>> = []
     try {
-      existingVendors = await ctx.runAction(internal.vendors.searchExisting, {
-        ticketId: args.ticketId,
-        limit: 5,
-      })
+      existingVendors = await ctx.runAction(
+        internal.vendors.searchExisting as any,
+        {
+          ticketId: args.ticketId,
+          limit: 5,
+        },
+      )
     } catch (error) {
       // Log error but continue with web search fallback
       console.error(
@@ -84,7 +101,7 @@ export const discoverVendors = action({
     if (existingVendors.length > 0) {
       // Convert to consistent VendorResult format
       const vendorResults: Array<VendorResult> = existingVendors.map(
-        (vendor: (typeof existingVendors)[number]) => ({
+        (vendor: Doc<'vendors'>) => ({
           businessName: vendor.businessName,
           email: vendor.email,
           phone: vendor.phone,
@@ -101,22 +118,22 @@ export const discoverVendors = action({
       )
 
       // Store results (even though they're existing vendors, we still want to track the discovery)
-      const firecrawlResultsId = await ctx.runMutation(
-        internal.firecrawlResults.store,
+      const firecrawlResultsId: Id<'firecrawlResults'> = await ctx.runMutation(
+        api.firecrawlResults.store as any,
         {
           ticketId: args.ticketId,
           results: vendorResults,
         },
       )
 
-      await ctx.runMutation(internal.tickets.updateInternal, {
+      await ctx.runMutation(internal.tickets.updateInternal as any, {
         ticketId: args.ticketId,
         firecrawlResultsId,
       })
 
       // Automatically send outreach emails to discovered vendors
       try {
-        await ctx.runAction(internal.vendorOutreach.sendOutreachEmails, {
+        await ctx.runAction(api.vendorOutreach.sendOutreachEmails as any, {
           ticketId: args.ticketId,
         })
       } catch (error) {
@@ -159,18 +176,18 @@ export const discoverVendors = action({
     // Store firecrawl results
     // Note: The agent should call searchVendors which returns vendors
     // We'll extract vendors from the agent's tool calls
-    const vendorResults = extractVendorsFromSteps(result.steps)
+    const vendorResults: Array<VendorResult> = extractVendorsFromSteps(result.steps)
 
     if (vendorResults.length > 0) {
-      const firecrawlResultsId = await ctx.runMutation(
-        internal.firecrawlResults.store,
+      const firecrawlResultsId: Id<'firecrawlResults'> = await ctx.runMutation(
+        api.firecrawlResults.store as any,
         {
           ticketId: args.ticketId,
           results: vendorResults,
         },
       )
 
-      await ctx.runMutation(internal.tickets.updateInternal, {
+      await ctx.runMutation(internal.tickets.updateInternal as any, {
         ticketId: args.ticketId,
         firecrawlResultsId,
       })
@@ -178,7 +195,7 @@ export const discoverVendors = action({
 
     // Automatically send outreach emails to discovered vendors
     try {
-      await ctx.runAction(internal.vendorOutreach.sendOutreachEmails, {
+      await ctx.runAction(api.vendorOutreach.sendOutreachEmails as any, {
         ticketId: args.ticketId,
       })
     } catch (error) {
@@ -227,4 +244,3 @@ function extractVendorsFromSteps(steps: Array<any>): Array<VendorResult> {
   }
   return vendors
 }
-

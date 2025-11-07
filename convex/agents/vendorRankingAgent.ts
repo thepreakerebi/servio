@@ -3,6 +3,7 @@
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
 import { internal } from '../_generated/api'
+import type { Doc, Id } from '../_generated/dataModel'
 
 /**
  * Rank vendors based on their quotes
@@ -13,36 +14,51 @@ export const rankVendors = action({
   args: {
     ticketId: v.id('tickets'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    rankedQuotes: Array<Doc<'vendorQuotes'> & { score: number }>
+  }> => {
     // Get all received quotes for this ticket
-    const quotes = await ctx.runQuery(internal.vendorQuotes.getByTicketIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const quotes: Array<Doc<'vendorQuotes'>> = await ctx.runQuery(
+      internal.vendorQuotes.getByTicketIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (quotes.length === 0) {
       return { rankedQuotes: [] }
     }
 
     // Get ticket to understand urgency
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
     }
 
     // Calculate scores for each quote
-    const quotesWithScores = await Promise.all(
-      quotes.map(async (quote: (typeof quotes)[number]) => {
+    const quotesWithScores: Array<Doc<'vendorQuotes'> & { score: number }> =
+      await Promise.all(
+      quotes.map(async (quote: Doc<'vendorQuotes'>) => {
         // Get vendor and outreach info
-        const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
-          vendorId: quote.vendorId,
-        })
+        const vendor: Doc<'vendors'> | null = await ctx.runQuery(
+          internal.vendors.getByIdInternal as any,
+          {
+            vendorId: quote.vendorId,
+          },
+        )
 
-        const outreach = await ctx.runQuery(internal.vendorOutreach.getByIdInternal, {
-          outreachId: quote.vendorOutreachId,
-        })
+        const outreach: Doc<'vendorOutreach'> | null = await ctx.runQuery(
+          internal.vendorOutreach.getByIdInternal as any,
+          {
+            outreachId: quote.vendorOutreachId,
+          },
+        )
 
         if (!vendor || !outreach) {
           return { ...quote, score: 0 }
@@ -63,7 +79,7 @@ export const rankVendors = action({
 
         // Normalize values for scoring
         // Price: lower is better (inverse score)
-        const prices = quotes.map((q: (typeof quotes)[number]) => q.price)
+        const prices = quotes.map((q: Doc<'vendorQuotes'>) => q.price)
         const minPrice = Math.min(...prices)
         const maxPrice = Math.max(...prices)
         const priceRange = maxPrice - minPrice || 1
@@ -71,7 +87,9 @@ export const rankVendors = action({
           priceRange > 0 ? 1 - (quote.price - minPrice) / priceRange : 0.5
 
         // Delivery time: faster is better (inverse score)
-        const deliveryTimes = quotes.map((q: (typeof quotes)[number]) => q.estimatedDeliveryTime)
+        const deliveryTimes = quotes.map(
+          (q: Doc<'vendorQuotes'>) => q.estimatedDeliveryTime,
+        )
         const minTime = Math.min(...deliveryTimes)
         const maxTime = Math.max(...deliveryTimes)
         const timeRange = maxTime - minTime || 1
@@ -104,14 +122,19 @@ export const rankVendors = action({
 
     // Update scores in database
     for (const quoteWithScore of quotesWithScores) {
-      await ctx.runMutation(internal.vendorQuotes.updateScore, {
+      await ctx.runMutation(internal.vendorQuotes.updateScore as any, {
         quoteId: quoteWithScore._id,
         score: quoteWithScore.score,
       })
     }
 
     // Sort by score (highest first)
-    quotesWithScores.sort((a: (typeof quotesWithScores)[number], b: (typeof quotesWithScores)[number]) => (b.score || 0) - (a.score || 0))
+    quotesWithScores.sort(
+      (
+        a: Doc<'vendorQuotes'> & { score: number },
+        b: Doc<'vendorQuotes'> & { score: number },
+      ) => (b.score || 0) - (a.score || 0),
+    )
 
     return {
       rankedQuotes: quotesWithScores,

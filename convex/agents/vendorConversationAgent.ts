@@ -5,8 +5,9 @@ import { openai } from '@ai-sdk/openai'
 import { z } from 'zod'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { internal } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import { getVendorConversationPrompt } from '../prompts/vendorConversation'
+import type { Doc } from '../_generated/dataModel'
 
 /**
  * Conversational response agent that responds to vendor emails naturally
@@ -30,45 +31,59 @@ export const generateVendorResponse = action({
       }),
     ),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    shouldRespond: boolean
+    responseSubject?: string
+    responseBody?: string
+    intent: 'question' | 'clarification' | 'quote_provided' | 'declining' | 'follow_up' | 'other'
+  }> => {
     // Get ticket and vendor data
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
     }
 
-    const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
-      vendorId: args.vendorId,
-    })
+    const vendor: Doc<'vendors'> | null = await ctx.runQuery(
+      internal.vendors.getByIdInternal as any,
+      {
+        vendorId: args.vendorId,
+      },
+    )
 
     if (!vendor) {
       throw new Error('Vendor not found')
     }
 
     // Get user data
-    const user = await ctx.runQuery(internal.users.getById, {
-      userId: ticket.createdBy,
-    })
+    const user: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getById as any,
+      {
+        userId: ticket.createdBy,
+      },
+    )
 
     // Check if vendor has already provided a quote
-    const existingQuotes = await ctx.runQuery(
-      internal.vendorQuotes.getByTicketIdInternal,
+    const existingQuotes: Array<Doc<'vendorQuotes'>> = await ctx.runQuery(
+      internal.vendorQuotes.getByTicketIdInternal as any,
       {
         ticketId: args.ticketId,
       },
     )
 
     const vendorQuote = existingQuotes.find(
-      (q: (typeof existingQuotes)[number]) => q.vendorId === args.vendorId,
+      (q: Doc<'vendorQuotes'>) => q.vendorId === args.vendorId,
     )
 
     // Build conversation context
-    const conversationContext = args.conversationHistory
+    const conversationContext: string = args.conversationHistory
       .map((msg) => {
-        const senderLabel =
+        const senderLabel: string =
           msg.sender === 'agent'
             ? 'Servio Agent'
             : msg.sender === 'vendor'

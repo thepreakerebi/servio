@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import OpenAI from 'openai'
 import { internalAction } from '../_generated/server'
 import { internal } from '../_generated/api'
+import type { Doc } from '../_generated/dataModel'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,18 +13,21 @@ export const generateTicketEmbedding = internalAction({
   args: {
     ticketId: v.id('tickets'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Array<number>> => {
     // Get ticket data using internal query (no auth required)
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
     }
 
     // Create embedding text from ticket fields
-    const embeddingText = [
+    const embeddingText: string = [
       ticket.description,
       ticket.issueType,
       ...ticket.predictedTags,
@@ -38,10 +42,10 @@ export const generateTicketEmbedding = internalAction({
       input: embeddingText,
     })
 
-    const embedding = response.data[0].embedding
+    const embedding: Array<number> = response.data[0].embedding
 
     // Update ticket with embedding
-    await ctx.runMutation(internal.embeddings.updateTicketEmbedding, {
+    await ctx.runMutation(internal.embeddings.updateTicketEmbedding as any, {
       ticketId: args.ticketId,
       embedding,
     })

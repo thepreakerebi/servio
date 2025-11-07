@@ -1,12 +1,12 @@
 import { Resend } from '@convex-dev/resend'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { components, internal } from '../_generated/api'
-import type { Id } from '../_generated/dataModel'
+import { api, components, internal } from '../_generated/api'
+import type { Doc, Id } from '../_generated/dataModel'
 
 const resend = new Resend((components as any).resend, {
   testMode: process.env.NODE_ENV !== 'production',
-  onEmailEvent: internal.emails.handleEmailEvent,
+  onEmailEvent: internal.emails.handleEmailEvent as any,
 })
 
 /**
@@ -18,17 +18,27 @@ export const selectVendor = action({
     ticketId: v.id('tickets'),
     quoteId: v.id('vendorQuotes'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    success: boolean
+    vendorId: Id<'vendors'>
+    quoteId: Id<'vendorQuotes'>
+  }> => {
     // Require authentication
-    const user = await ctx.runQuery(internal.users.getCurrent, {})
+    const user: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getCurrent as any,
+      {},
+    )
     if (!user) {
       throw new Error('Not authenticated')
     }
 
     // Get ticket
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
@@ -40,9 +50,12 @@ export const selectVendor = action({
     }
 
     // Get quote
-    const quote = await ctx.runQuery(internal.vendorQuotes.getByIdInternal, {
-      quoteId: args.quoteId,
-    })
+    const quote: Doc<'vendorQuotes'> | null = await ctx.runQuery(
+      internal.vendorQuotes.getByIdInternal as any,
+      {
+        quoteId: args.quoteId,
+      },
+    )
 
     if (!quote) {
       throw new Error('Quote not found')
@@ -57,42 +70,48 @@ export const selectVendor = action({
     }
 
     // Get vendor
-    const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
-      vendorId: quote.vendorId,
-    })
+    const vendor: Doc<'vendors'> | null = await ctx.runQuery(
+      internal.vendors.getByIdInternal as any,
+      {
+        vendorId: quote.vendorId,
+      },
+    )
 
     if (!vendor) {
       throw new Error('Vendor not found')
     }
 
     // Get all quotes for this ticket
-    const allQuotes = await ctx.runQuery(internal.vendorQuotes.getByTicketIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const allQuotes: Array<Doc<'vendorQuotes'>> = await ctx.runQuery(
+      internal.vendorQuotes.getByTicketIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     // Collect vendor IDs and fetch all vendors in batch
     const vendorIds = allQuotes
-      .filter((q: (typeof allQuotes)[number]) => q._id !== args.quoteId && q.status === 'received')
-      .map((q: (typeof allQuotes)[number]) => q.vendorId)
+      .filter((q: Doc<'vendorQuotes'>) => q._id !== args.quoteId && q.status === 'received')
+      .map((q: Doc<'vendorQuotes'>) => q.vendorId)
 
     // Fetch all vendors at once
-    const vendors = await Promise.all(
-      vendorIds.map((vendorId: (typeof vendorIds)[number]) =>
-        ctx.runQuery(internal.vendors.getByIdInternal, { vendorId }),
+    const vendors: Array<Doc<'vendors'> | null> = await Promise.all(
+      vendorIds.map(async (vendorId: Id<'vendors'>) =>
+        await ctx.runQuery(internal.vendors.getByIdInternal as any, {
+          vendorId,
+        }),
       ),
     )
 
     // Create vendor map
-    type VendorType = NonNullable<Awaited<ReturnType<typeof ctx.runQuery<typeof internal.vendors.getByIdInternal>>>>
-    type VendorArrayItem = Awaited<ReturnType<typeof ctx.runQuery<typeof internal.vendors.getByIdInternal>>>
-    const vendorMap = new Map<Id<'vendors'>, VendorType>(
+    const vendorMap = new Map<Id<'vendors'>, Doc<'vendors'>>(
       vendors
-        .filter((vendorItem: VendorArrayItem): vendorItem is VendorType => vendorItem !== null)
-        .map((vendorItem: VendorType) => [vendorItem._id, vendorItem]),
+        .filter((v): v is Doc<'vendors'> => v !== null)
+        .map((v) => [v._id, v]),
     )
 
     // Mark selected quote as selected
-    await ctx.runMutation(internal.vendorQuotes.updateStatus, {
+    await ctx.runMutation(internal.vendorQuotes.updateStatus as any, {
       quoteId: args.quoteId,
       status: 'selected',
     })
@@ -100,7 +119,7 @@ export const selectVendor = action({
     // Mark all other received quotes as rejected and send rejection emails
     for (const otherQuote of allQuotes) {
       if (otherQuote._id !== args.quoteId && otherQuote.status === 'received') {
-        await ctx.runMutation(internal.vendorQuotes.updateStatus, {
+        await ctx.runMutation(internal.vendorQuotes.updateStatus as any, {
           quoteId: otherQuote._id,
           status: 'rejected',
         })
@@ -163,7 +182,7 @@ export const selectVendor = action({
     }
 
     // Update ticket with all fields atomically
-    await ctx.runMutation(internal.tickets.updateInternal, {
+    await ctx.runMutation(internal.tickets.updateInternal as any, {
       ticketId: args.ticketId,
       selectedVendorId: quote.vendorId,
       selectedVendorQuoteId: args.quoteId,

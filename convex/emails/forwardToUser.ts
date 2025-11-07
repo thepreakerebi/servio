@@ -1,7 +1,8 @@
 import { Resend } from '@convex-dev/resend'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { components, internal } from '../_generated/api'
+import { api, components, internal } from '../_generated/api'
+import type { Doc } from '../_generated/dataModel'
 
 const resend = new Resend((components as any).resend, {
   testMode: process.env.NODE_ENV !== 'production',
@@ -12,21 +13,27 @@ export const forwardToUser = action({
     ticketId: v.id('tickets'),
     message: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<void> => {
     // Get ticket and user data using internal query
     // Note: This is called from webhook handler, auth may not be available
     // We verify ownership through ticket.createdBy instead
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
     }
 
-    const user = await ctx.runQuery(internal.users.getById, {
-      userId: ticket.createdBy,
-    })
+    const user: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getById as any,
+      {
+        userId: ticket.createdBy,
+      },
+    )
 
     if (!user || !user.email) {
       throw new Error('User not found or has no email')

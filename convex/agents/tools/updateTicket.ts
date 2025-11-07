@@ -2,8 +2,9 @@
 
 import { z } from 'zod'
 import { tool } from 'ai'
-import { internal } from '../../_generated/api'
+import { api, internal } from '../../_generated/api'
 import type { ActionCtx } from '../../_generated/server'
+import type { Doc } from '../../_generated/dataModel'
 
 const updateTicketSchema = z.object({
   ticketId: z.string().describe('Ticket ID to update'),
@@ -24,22 +25,25 @@ export function createUpdateTicketTool(ctx: ActionCtx) {
       predictedTags,
       status,
     }: UpdateTicketParams) => {
-      await ctx.runMutation(internal.tickets.update, {
+      await ctx.runMutation(api.tickets.update as any, {
         ticketId: ticketId as any,
         issueType,
         predictedTags,
       })
 
       if (status) {
-        await ctx.runMutation(internal.tickets.updateStatus, {
+        await ctx.runMutation(api.tickets.updateStatus as any, {
           ticketId: ticketId as any,
           status,
         })
       }
 
-      const updated = await ctx.runQuery(internal.tickets.getByIdInternal, {
-        ticketId: ticketId as any,
-      })
+      const updated: Doc<'tickets'> | null = await ctx.runQuery(
+        internal.tickets.getByIdInternal as any,
+        {
+          ticketId: ticketId as any,
+        },
+      )
 
       return { ticket: updated }
     },

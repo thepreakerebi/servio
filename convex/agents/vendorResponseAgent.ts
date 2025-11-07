@@ -7,6 +7,7 @@ import { v } from 'convex/values'
 import { action } from '../_generated/server'
 import { internal } from '../_generated/api'
 import { getVendorResponsePrompt } from '../prompts/vendorResponse'
+import type { Doc } from '../_generated/dataModel'
 
 /**
  * Parse vendor email response to extract quote details
@@ -20,19 +21,34 @@ export const parseVendorResponse = action({
     emailBody: v.string(),
     emailSubject: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    hasQuote: boolean
+    price?: number
+    currency: string
+    estimatedDeliveryTime?: number
+    ratings?: number
+    notes?: string
+    isDeclining: boolean
+    declineReason?: string
+  }> => {
     // Get ticket and vendor data
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
     }
 
-    const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
-      vendorId: args.vendorId,
-    })
+    const vendor: Doc<'vendors'> | null = await ctx.runQuery(
+      internal.vendors.getByIdInternal as any,
+      {
+        vendorId: args.vendorId,
+      },
+    )
 
     if (!vendor) {
       throw new Error('Vendor not found')

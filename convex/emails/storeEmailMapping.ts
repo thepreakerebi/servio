@@ -1,5 +1,6 @@
 import { v } from 'convex/values'
 import { internalMutation, internalQuery } from '../_generated/server'
+import type { Doc } from '../_generated/dataModel'
 
 /**
  * Store email-to-ticket mapping when sending an email
@@ -10,7 +11,7 @@ export const storeEmailMapping = internalMutation({
     ticketId: v.id('tickets'),
     vendorId: v.id('vendors'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<void> => {
     await ctx.db.insert('emailMappings', {
       emailId: args.emailId,
       ticketId: args.ticketId,
@@ -34,6 +35,14 @@ export const getEmailMappingByEmailId = internalQuery({
   },
 })
 
+type EmailMappingStatus =
+  | 'sent'
+  | 'delivered'
+  | 'bounced'
+  | 'complained'
+  | 'opened'
+  | 'clicked'
+
 /**
  * Update email mapping status
  */
@@ -50,15 +59,19 @@ export const updateEmailMappingStatus = internalMutation({
     ),
     bounceReason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<void> => {
     const mapping = await ctx.db
       .query('emailMappings')
       .withIndex('by_emailId', (q) => q.eq('emailId', args.emailId))
       .first()
 
     if (mapping) {
-      const update: any = {
-        status: args.status,
+      const update: {
+        status: EmailMappingStatus
+        lastEventAt: number
+        bounceReason?: string
+      } = {
+        status: args.status as EmailMappingStatus,
         lastEventAt: Date.now(),
       }
       if (args.bounceReason !== undefined) {
@@ -68,6 +81,13 @@ export const updateEmailMappingStatus = internalMutation({
     }
   },
 })
+
+type VendorEmailStatus =
+  | 'valid'
+  | 'invalid'
+  | 'bounced'
+  | 'complained'
+  | 'doNotEmail'
 
 /**
  * Update vendor email status
@@ -85,9 +105,12 @@ export const updateVendorEmailStatus = internalMutation({
     lastEmailError: v.optional(v.string()),
     clearError: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const update: any = {
-      emailStatus: args.emailStatus,
+  handler: async (ctx, args): Promise<void> => {
+    const update: {
+      emailStatus: VendorEmailStatus
+      lastEmailError?: string | undefined
+    } = {
+      emailStatus: args.emailStatus as VendorEmailStatus,
     }
     if (args.clearError) {
       update.lastEmailError = undefined

@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import OpenAI from 'openai'
 import { internalAction } from '../_generated/server'
 import { internal } from '../_generated/api'
+import type { Doc } from '../_generated/dataModel'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -15,36 +16,45 @@ export const generateVendorOutreachEmbedding = internalAction({
   args: {
     outreachId: v.id('vendorOutreach'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Array<number>> => {
     // Get outreach data
-    const outreach = await ctx.runQuery(internal.vendorOutreach.getByIdInternal, {
-      outreachId: args.outreachId,
-    })
+    const outreach: Doc<'vendorOutreach'> | null = await ctx.runQuery(
+      internal.vendorOutreach.getByIdInternal as any,
+      {
+        outreachId: args.outreachId,
+      },
+    )
 
     if (!outreach) {
       throw new Error('Vendor outreach not found')
     }
 
     // Get ticket data
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: outreach.ticketId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: outreach.ticketId,
+      },
+    )
 
     if (!ticket) {
       throw new Error('Ticket not found')
     }
 
     // Get vendor data
-    const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
-      vendorId: outreach.vendorId,
-    })
+    const vendor: Doc<'vendors'> | null = await ctx.runQuery(
+      internal.vendors.getByIdInternal as any,
+      {
+        vendorId: outreach.vendorId,
+      },
+    )
 
     if (!vendor) {
       throw new Error('Vendor not found')
     }
 
     // Create embedding text from ticket and vendor context
-    const embeddingText = [
+    const embeddingText: string = [
       ticket.description,
       ticket.issueType,
       ...ticket.predictedTags,
@@ -62,10 +72,10 @@ export const generateVendorOutreachEmbedding = internalAction({
       input: embeddingText,
     })
 
-    const embedding = response.data[0].embedding
+    const embedding: Array<number> = response.data[0].embedding
 
     // Update outreach with embedding
-    await ctx.runMutation(internal.embeddings.updateVendorOutreachEmbedding, {
+    await ctx.runMutation(internal.embeddings.updateVendorOutreachEmbedding as any, {
       outreachId: args.outreachId,
       embedding,
     })

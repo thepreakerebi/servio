@@ -1,11 +1,12 @@
 import { Resend } from '@convex-dev/resend'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
-import { components, internal } from '../_generated/api'
+import { api, components, internal } from '../_generated/api'
+import type { Doc } from '../_generated/dataModel'
 
 const resend = new Resend((components as any).resend, {
   testMode: process.env.NODE_ENV !== 'production',
-  onEmailEvent: internal.emails.handleEmailEvent,
+  onEmailEvent: internal.emails.handleEmailEvent as any,
 })
 
 export const sendVendorEmail = action({
@@ -13,16 +14,22 @@ export const sendVendorEmail = action({
     ticketId: v.id('tickets'),
     vendorId: v.id('vendors'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    emailId: string
+    threadId: string
+  }> => {
     // Require authentication
-    const user = await ctx.runQuery(internal.users.getCurrent, {})
+    const user: Doc<'users'> | null = await ctx.runQuery(
+      api.users.getCurrent as any,
+      {},
+    )
     if (!user) {
       throw new Error('Not authenticated')
     }
 
     // Draft email using agent
     const emailContent = await ctx.runAction(
-      internal.agents.emailDraftAgent.draftVendorEmail,
+      api.agents.emailDraftAgent.draftVendorEmail as any,
       {
         ticketId: args.ticketId,
         vendorId: args.vendorId,
@@ -30,12 +37,18 @@ export const sendVendorEmail = action({
     )
 
     // Get ticket and vendor data using internal queries (auth context preserved)
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: args.ticketId,
-    })
-    const vendor = await ctx.runQuery(internal.vendors.getByIdInternal, {
-      vendorId: args.vendorId,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: args.ticketId,
+      },
+    )
+    const vendor: Doc<'vendors'> | null = await ctx.runQuery(
+      internal.vendors.getByIdInternal as any,
+      {
+        vendorId: args.vendorId,
+      },
+    )
 
     if (!ticket || !vendor) {
       throw new Error('Ticket or vendor not found')
@@ -71,7 +84,7 @@ export const sendVendorEmail = action({
     })
 
     // Store email-to-ticket mapping for tracking email events
-    await ctx.runMutation(internal.emails.storeEmailMapping, {
+    await ctx.runMutation(internal.emails.storeEmailMapping as any, {
       emailId: emailId as string,
       ticketId: args.ticketId,
       vendorId: args.vendorId,
@@ -80,20 +93,23 @@ export const sendVendorEmail = action({
     // Create or update conversation
     let conversationId = ticket.conversationId
     if (!conversationId) {
-      conversationId = await ctx.runMutation(internal.conversations.create, {
-        ticketId: args.ticketId,
-      })
+      conversationId = await ctx.runMutation(
+        api.conversations.create as any,
+        {
+          ticketId: args.ticketId,
+        },
+      )
     }
 
     // Add initial message to conversation
-    await ctx.runMutation(internal.conversations.addMessage, {
+    await ctx.runMutation(api.conversations.addMessage as any, {
       conversationId,
       sender: 'agent',
       message: emailContent.body,
     })
 
     // Update ticket status
-    await ctx.runMutation(internal.tickets.updateStatus, {
+    await ctx.runMutation(api.tickets.updateStatus as any, {
       ticketId: args.ticketId,
       status: 'Sent',
     })

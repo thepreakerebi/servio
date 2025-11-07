@@ -1,11 +1,11 @@
 import { Resend } from '@convex-dev/resend'
 import { httpAction } from '../_generated/server'
-import { components, internal } from '../_generated/api'
-import type { Id } from '../_generated/dataModel'
+import { api, components, internal } from '../_generated/api'
+import type { Doc, Id } from '../_generated/dataModel'
 
 const resend = new Resend((components as any).resend, {
   testMode: process.env.NODE_ENV !== 'production',
-  onEmailEvent: internal.emails.handleEmailEvent,
+  onEmailEvent: internal.emails.handleEmailEvent as any,
 })
 
 /**
@@ -21,10 +21,10 @@ async function handleConversationalResponse(
     emailSubject: string | null
     conversation: { _id: Id<'conversations'>; messages: Array<any> }
   },
-) {
+): Promise<void> {
   try {
     const conversationResponse = await ctx.runAction(
-      internal.agents.vendorConversationAgent.generateVendorResponse,
+      api.agents.vendorConversationAgent.generateVendorResponse as any,
       {
         ticketId: params.ticketId,
         vendorId: params.vendorId,
@@ -52,7 +52,7 @@ async function handleConversationalResponse(
       })
 
       // Add agent response to conversation
-      await ctx.runMutation(internal.conversations.addMessage, {
+      await ctx.runMutation(api.conversations.addMessage as any, {
         conversationId: params.conversation._id,
         sender: 'agent',
         message: conversationResponse.responseBody,
@@ -110,8 +110,8 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
     }
 
     // Get conversation for this ticket (use internal query for httpAction)
-    const conversation = await ctx.runQuery(
-      internal.conversations.getByTicketIdInternal,
+    const conversation: Doc<'conversations'> | null = await ctx.runQuery(
+      internal.conversations.getByTicketIdInternal as any,
       {
         ticketId: ticketId as Id<'tickets'>,
       },
@@ -123,8 +123,8 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
     }
 
     // Extract email body and subject from payload
-    const emailBody = extractEmailBody(payload)
-    const emailSubject = extractEmailSubject(payload)
+    const emailBody: string | null = extractEmailBody(payload)
+    const emailSubject: string | null = extractEmailSubject(payload)
 
     if (!emailBody) {
       console.warn('No email body found in inbound email')
@@ -132,9 +132,12 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
     }
 
     // Get ticket
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: ticketId as Id<'tickets'>,
-    })
+    const ticket: Doc<'tickets'> | null = await ctx.runQuery(
+      internal.tickets.getByIdInternal as any,
+      {
+        ticketId: ticketId as Id<'tickets'>,
+      },
+    )
 
     if (!ticket) {
       console.warn(`Ticket not found: ${ticketId}`)
@@ -144,7 +147,7 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
     // Find vendor outreach record by matching sender email
     // Extract sender email from payload
     const eventData = payload.data || payload
-    const senderEmail =
+    const senderEmail: string =
       eventData.from?.email ||
       eventData.from ||
       payload.from?.email ||
@@ -152,21 +155,24 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
       ''
 
     // Find vendor by email
-    const vendor = await ctx.runQuery(internal.vendors.getByEmail, {
-      email: senderEmail,
-    })
+    const vendor: Doc<'vendors'> | null = await ctx.runQuery(
+      internal.vendors.getByEmail as any,
+      {
+        email: senderEmail,
+      },
+    )
 
     if (vendor) {
       // Find outreach record for this vendor and ticket
-      const outreachRecords = await ctx.runQuery(
-        internal.vendorOutreach.getByTicketId,
+      const outreachRecords: Array<Doc<'vendorOutreach'>> = await ctx.runQuery(
+        api.vendorOutreach.getByTicketId as any,
         {
           ticketId: ticketId as Id<'tickets'>,
         },
       )
 
       const outreach = outreachRecords.find(
-        (o: (typeof outreachRecords)[number]) =>
+        (o: Doc<'vendorOutreach'>) =>
           o.vendorId === vendor._id && o.status !== 'responded',
       )
 
@@ -174,7 +180,7 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
         // Parse vendor response using agent
         try {
           const quoteData = await ctx.runAction(
-            internal.agents.vendorResponseAgent.parseVendorResponse,
+            api.agents.vendorResponseAgent.parseVendorResponse as any,
             {
               ticketId: ticketId as Id<'tickets'>,
               vendorId: vendor._id,
@@ -187,45 +193,48 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
           // If vendor provided a quote, create quote record
           // The refine validation ensures price, currency, and estimatedDeliveryTime are defined
           if (quoteData.hasQuote && !quoteData.isDeclining) {
-            const quoteId = await ctx.runMutation(internal.vendorQuotes.create, {
-              ticketId: ticketId as Id<'tickets'>,
-              vendorId: vendor._id,
-              vendorOutreachId: outreach._id,
-              price: quoteData.price!,
-              currency: quoteData.currency!,
-              estimatedDeliveryTime: quoteData.estimatedDeliveryTime!,
-              ratings: quoteData.ratings,
-              responseText: emailBody,
-            })
+            const quoteId: Id<'vendorQuotes'> = await ctx.runMutation(
+              internal.vendorQuotes.create as any,
+              {
+                ticketId: ticketId as Id<'tickets'>,
+                vendorId: vendor._id,
+                vendorOutreachId: outreach._id,
+                price: quoteData.price!,
+                currency: quoteData.currency!,
+                estimatedDeliveryTime: quoteData.estimatedDeliveryTime!,
+                ratings: quoteData.ratings,
+                responseText: emailBody,
+              },
+            )
 
             // Schedule embedding generation for vendor quote
             await ctx.scheduler.runAfter(
               0,
-              internal.embeddings.generateVendorQuoteEmbedding,
+              internal.embeddings.generateVendorQuoteEmbedding as any,
               {
                 quoteId,
               },
             )
 
             // Update outreach status
-            await ctx.runMutation(internal.vendorOutreach.updateStatus, {
+            await ctx.runMutation(internal.vendorOutreach.updateStatus as any, {
               outreachId: outreach._id,
               status: 'responded',
             })
 
             // Rank vendors if we have multiple quotes
-            await ctx.runAction(internal.agents.vendorRankingAgent.rankVendors, {
+            await ctx.runAction(api.agents.vendorRankingAgent.rankVendors as any, {
               ticketId: ticketId as Id<'tickets'>,
             })
 
             // Update ticket quote status
-            await ctx.runMutation(internal.tickets.updateInternal, {
+            await ctx.runMutation(internal.tickets.updateInternal as any, {
               ticketId: ticketId as Id<'tickets'>,
               quoteStatus: 'quotes_received',
             })
           } else if (quoteData.isDeclining) {
             // Vendor declined - update outreach status
-            await ctx.runMutation(internal.vendorOutreach.updateStatus, {
+            await ctx.runMutation(internal.vendorOutreach.updateStatus as any, {
               outreachId: outreach._id,
               status: 'responded',
             })
@@ -260,7 +269,7 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
     }
 
     // Add vendor reply to conversation
-    await ctx.runMutation(internal.conversations.addMessage, {
+    await ctx.runMutation(api.conversations.addMessage as any, {
       conversationId: conversation._id,
       sender: 'vendor',
       message: emailBody,
@@ -268,14 +277,14 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
 
     // Update ticket status to 'Replied' if not already in a later status
     if (ticket.status !== 'Fixed') {
-      await ctx.runMutation(internal.tickets.updateStatus, {
+      await ctx.runMutation(api.tickets.updateStatus as any, {
         ticketId: ticketId as Id<'tickets'>,
         status: 'Replied',
       })
     }
 
     // Forward reply to user
-    await ctx.runAction(internal.emails.forwardToUser, {
+    await ctx.runAction(api.emails.forwardToUser as any, {
       ticketId: ticketId as Id<'tickets'>,
       message: emailBody,
     })

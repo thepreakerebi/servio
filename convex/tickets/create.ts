@@ -1,7 +1,8 @@
 import { v } from 'convex/values'
 import { mutation } from '../_generated/server'
 import { requireAuth } from '../authHelpers'
-import { internal } from '../_generated/api'
+import { api } from '../_generated/api'
+import type { Id } from '../_generated/dataModel'
 
 export const create = mutation({
   args: {
@@ -9,7 +10,7 @@ export const create = mutation({
     location: v.optional(v.string()),
     photoId: v.id('_storage'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<'tickets'>> => {
     const user = await requireAuth(ctx)
 
     const ticketId = await ctx.db.insert('tickets', {
@@ -23,9 +24,13 @@ export const create = mutation({
     })
 
     // Trigger ticket analysis and embedding generation
-    await ctx.scheduler.runAfter(0, internal.agents.ticketAnalysisAgent.analyzeTicket, {
-      ticketId,
-    })
+    await ctx.scheduler.runAfter(
+      0,
+      api.agents.ticketAnalysisAgent.analyzeTicket as any,
+      {
+        ticketId,
+      },
+    )
 
     return ticketId
   },
