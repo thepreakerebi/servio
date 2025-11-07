@@ -2,9 +2,18 @@
 
 import { OAuth2Client } from 'google-auth-library'
 
-const clientId = process.env.GOOGLE_CLIENT_ID!
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET!
-const redirectUri = process.env.GOOGLE_REDIRECT_URI!
+// Get environment variables with better error handling
+const clientId = process.env.GOOGLE_CLIENT_ID
+const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+const redirectUri = process.env.GOOGLE_REDIRECT_URI
+
+if (!clientId || !clientSecret || !redirectUri) {
+  console.error('Missing Google OAuth environment variables:')
+  console.error('GOOGLE_CLIENT_ID:', clientId ? '✓' : '✗ MISSING')
+  console.error('GOOGLE_CLIENT_SECRET:', clientSecret ? '✓' : '✗ MISSING')
+  console.error('GOOGLE_REDIRECT_URI:', redirectUri ? '✓' : '✗ MISSING')
+  throw new Error('Google OAuth environment variables are not configured. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI in your Convex environment variables.')
+}
 
 const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri)
 
@@ -33,7 +42,7 @@ export async function getGoogleUser(code: string) {
   
   const ticket = await oAuth2Client.verifyIdToken({
     idToken: tokens.id_token as string,
-    audience: clientId,
+    audience: clientId!,
   })
   
   const payload = ticket.getPayload()

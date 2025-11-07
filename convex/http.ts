@@ -119,15 +119,55 @@ http.route({
   path: '/auth/google/url',
   method: 'GET',
   handler: httpAction(async (_ctx, request) => {
-    const url = new URL(request.url)
-    const state = url.searchParams.get('state') || ''
-    // Import Node.js module inside handler
-    const { getGoogleAuthUrl } = await import('./users/googleAuth')
-    const authUrl = getGoogleAuthUrl(state)
+    try {
+      const url = new URL(request.url)
+      const state = url.searchParams.get('state') || ''
+      // Import Node.js module inside handler
+      const { getGoogleAuthUrl } = await import('./users/googleAuth')
+      const authUrl = getGoogleAuthUrl(state)
+      return new Response(JSON.stringify({ url: authUrl }), {
+        status: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      })
+    } catch (error: any) {
+      console.error('Error generating Google OAuth URL:', error)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to generate OAuth URL',
+          message: error.message || 'Unknown error',
+        }), 
+        {
+          status: 500,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      )
+    }
+  }),
+})
+
+// OPTIONS handler for CORS preflight
+http.route({
+  path: '/auth/google/url',
+  method: 'OPTIONS',
+  handler: httpAction(() => {
     return Promise.resolve(
-      new Response(JSON.stringify({ url: authUrl }), {
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+        },
+      })
     )
   }),
 })

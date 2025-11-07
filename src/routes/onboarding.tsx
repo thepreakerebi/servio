@@ -1,6 +1,6 @@
+import { useEffect } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAuth } from '@/hooks/useAuth'
-import { useEffect } from 'react'
 
 export const Route = createFileRoute('/onboarding')({
   component: OnboardingPage,

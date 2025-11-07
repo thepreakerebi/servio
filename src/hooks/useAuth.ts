@@ -1,9 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '../../convex/_generated/api'
 
 const TOKEN_KEY = 'servio_auth_token'
+
+/**
+ * Get Convex URL from environment variable
+ */
+function getConvexUrl(): string {
+  const url = (import.meta as any).env?.VITE_CONVEX_URL
+  if (!url) {
+    console.error('VITE_CONVEX_URL environment variable is not set')
+    throw new Error('Convex URL is not configured. Please set VITE_CONVEX_URL in your .env file.')
+  }
+  return url
+}
 
 /**
  * Decode JWT token to get user ID (client-side only, for UI purposes)
@@ -36,6 +48,7 @@ export function useAuth() {
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [decodedToken, setDecodedToken] = useState<{ userId?: string } | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Load token from localStorage on mount
   useEffect(() => {
@@ -59,31 +72,50 @@ export function useAuth() {
   const signInWithGoogle = async () => {
     try {
       setIsLoading(true)
+      setError(null)
+      
       // Get Google OAuth URL from backend
-      const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL!
+      const CONVEX_URL = getConvexUrl()
+      console.log('Fetching OAuth URL from:', `${CONVEX_URL}/auth/google/url`)
+      
       const response = await fetch(`${CONVEX_URL}/auth/google/url`)
-      const { url } = await response.json()
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Response error:', response.status, errorText)
+        throw new Error(`Failed to get Google OAuth URL: ${response.status} ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('OAuth URL response:', data)
+      
+      if (!data.url) {
+        throw new Error('No OAuth URL returned from server')
+      }
       
       // Redirect to Google OAuth
-      window.location.href = url
+      window.location.href = data.url
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to initiate Google sign in'
       console.error('Failed to initiate Google sign in:', err)
-      throw err
-    } finally {
+      setError(errorMessage)
       setIsLoading(false)
+      throw err
     }
   }
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     try {
       setIsLoading(true)
       localStorage.removeItem(TOKEN_KEY)
       setToken(null)
       setDecodedToken(null)
+      setError(null)
       // Redirect to login
       window.location.href = '/login'
     } catch (err) {
       console.error('Failed to sign out:', err)
+      setError('Failed to sign out')
     } finally {
       setIsLoading(false)
     }
@@ -95,6 +127,7 @@ export function useAuth() {
     setToken(newToken)
     const decoded = decodeToken(newToken)
     setDecodedToken(decoded)
+    setError(null)
   }
 
   return {
@@ -103,11 +136,8 @@ export function useAuth() {
     userId: decodedToken?.userId ?? null, // For UI purposes only
     isAuthenticated: !!token && !!decodedToken?.userId && user !== null && user !== undefined,
     isLoading: isLoading || isQueryPending,
-    error: null,
+    error,
     signInWithGoogle,
-    signInWithMagicLink: async () => {
-      throw new Error('Magic link authentication not implemented yet')
-    },
     signOut: handleSignOut,
     setAuthToken, // Expose for OAuth callback
   }
