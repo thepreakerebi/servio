@@ -1,6 +1,68 @@
+import { Resend } from '@convex-dev/resend'
 import { httpAction } from '../_generated/server'
-import { internal } from '../_generated/api'
+import { components, internal } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
+
+const resend = new Resend((components as any).resend, {
+  testMode: process.env.NODE_ENV !== 'production',
+  onEmailEvent: internal.emails.handleEmailEvent,
+})
+
+/**
+ * Helper function to handle conversational response to vendor emails
+ */
+async function handleConversationalResponse(
+  ctx: Parameters<Parameters<typeof httpAction>[0]>[0],
+  params: {
+    ticketId: Id<'tickets'>
+    vendorId: Id<'vendors'>
+    vendorEmail: string
+    emailBody: string
+    emailSubject: string | null
+    conversation: { _id: Id<'conversations'>; messages: Array<any> }
+  },
+) {
+  try {
+    const conversationResponse = await ctx.runAction(
+      internal.agents.vendorConversationAgent.generateVendorResponse,
+      {
+        ticketId: params.ticketId,
+        vendorId: params.vendorId,
+        vendorEmail: params.vendorEmail,
+        vendorMessage: params.emailBody,
+        conversationHistory: params.conversation.messages,
+      },
+    )
+
+    // If agent determines we should respond, send the response
+    if (conversationResponse.shouldRespond && conversationResponse.responseBody) {
+      // Send conversational response email
+      await resend.sendEmail(ctx, {
+        from:
+          process.env.RESEND_FROM_EMAIL ||
+          'Servio Notifications <notifications@updates.shamp.io>',
+        to: params.vendorEmail,
+        replyTo: [
+          process.env.RESEND_REPLY_TO_EMAIL || 'replies@updates.shamp.io',
+        ],
+        subject:
+          conversationResponse.responseSubject ||
+          `Re: [Ticket #${params.ticketId}] ${params.emailSubject || 'Maintenance Request'}`,
+        html: conversationResponse.responseBody,
+      })
+
+      // Add agent response to conversation
+      await ctx.runMutation(internal.conversations.addMessage, {
+        conversationId: params.conversation._id,
+        sender: 'agent',
+        message: conversationResponse.responseBody,
+      })
+    }
+  } catch (error) {
+    console.error('Error generating conversational response:', error)
+    // Continue even if conversational response fails
+  }
+}
 
 /**
  * Handle inbound email replies from Resend's "Receiving Emails" feature
@@ -47,9 +109,9 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
       return new Response('OK', { status: 200 })
     }
 
-    // Get conversation for this ticket
+    // Get conversation for this ticket (use internal query for httpAction)
     const conversation = await ctx.runQuery(
-      internal.conversations.getByTicketId,
+      internal.conversations.getByTicketIdInternal,
       {
         ticketId: ticketId as Id<'tickets'>,
       },
@@ -159,10 +221,32 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
               status: 'responded',
             })
           }
+
+          // Generate conversational response if needed
+          // Check if vendor is asking questions or needs clarification
+          await handleConversationalResponse(ctx, {
+            ticketId: ticketId as Id<'tickets'>,
+            vendorId: vendor._id,
+            vendorEmail: senderEmail,
+            emailBody,
+            emailSubject,
+            conversation,
+          })
         } catch (error) {
           console.error('Error parsing vendor response:', error)
           // Continue to add message to conversation even if parsing fails
         }
+      } else {
+        // Vendor exists but no active outreach - still try to respond conversationally
+        // This handles cases where vendor emails about an existing ticket
+        await handleConversationalResponse(ctx, {
+          ticketId: ticketId as Id<'tickets'>,
+          vendorId: vendor._id,
+          vendorEmail: senderEmail,
+          emailBody,
+          emailSubject,
+          conversation,
+        })
       }
     }
 
