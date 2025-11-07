@@ -3,6 +3,7 @@ import { internalMutation } from '../_generated/server'
 
 /**
  * Create a vendor outreach record when an email is sent to a vendor
+ * Returns the outreach ID for embedding generation scheduling
  */
 export const create = internalMutation({
   args: {

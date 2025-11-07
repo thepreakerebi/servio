@@ -168,12 +168,21 @@ export const sendOutreachEmails = action({
         })
 
         // Create outreach record
-        await ctx.runMutation(internal.vendorOutreach.create, {
+        const outreachId = await ctx.runMutation(internal.vendorOutreach.create, {
           ticketId: args.ticketId,
           vendorId,
           emailId: emailId as string,
           expiresAt,
         })
+
+        // Schedule embedding generation for vendor outreach
+        await ctx.scheduler.runAfter(
+          0,
+          internal.embeddings.generateVendorOutreachEmbedding,
+          {
+            outreachId,
+          },
+        )
 
         // Add message to conversation
         await ctx.runMutation(internal.conversations.addMessage, {

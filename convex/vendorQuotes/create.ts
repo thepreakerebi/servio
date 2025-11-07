@@ -3,6 +3,7 @@ import { internalMutation } from '../_generated/server'
 
 /**
  * Create a vendor quote from a vendor response
+ * Returns the quote ID for embedding generation scheduling
  */
 export const create = internalMutation({
   args: {

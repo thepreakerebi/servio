@@ -161,11 +161,17 @@ export default defineSchema({
     ),
     followUpSentAt: v.optional(v.number()),
     expiresAt: v.number(), // Quote request expiration time
+    embedding: v.optional(v.array(v.float64())),
   })
     .index('by_ticketId', ['ticketId'])
     .index('by_vendorId', ['vendorId'])
     .index('by_emailId', ['emailId'])
-    .index('by_status', ['status']),
+    .index('by_status', ['status'])
+    .vectorIndex('by_embedding', {
+      vectorField: 'embedding',
+      dimensions: 1536,
+      filterFields: ['ticketId', 'vendorId', 'status'],
+    }),
 
   vendorQuotes: defineTable({
     ticketId: v.id('tickets'),
@@ -186,9 +192,15 @@ export default defineSchema({
     responseReceivedAt: v.optional(v.number()),
     createdAt: v.number(),
     score: v.optional(v.number()), // Calculated ranking score
+    embedding: v.optional(v.array(v.float64())),
   })
     .index('by_ticketId', ['ticketId'])
     .index('by_vendorId', ['vendorId'])
     .index('by_status', ['status'])
-    .index('by_ticketId_status', ['ticketId', 'status']),
+    .index('by_ticketId_status', ['ticketId', 'status'])
+    .vectorIndex('by_embedding', {
+      vectorField: 'embedding',
+      dimensions: 1536,
+      filterFields: ['ticketId', 'vendorId', 'status'],
+    }),
 })

@@ -187,7 +187,7 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
           // If vendor provided a quote, create quote record
           // The refine validation ensures price, currency, and estimatedDeliveryTime are defined
           if (quoteData.hasQuote && !quoteData.isDeclining) {
-            await ctx.runMutation(internal.vendorQuotes.create, {
+            const quoteId = await ctx.runMutation(internal.vendorQuotes.create, {
               ticketId: ticketId as Id<'tickets'>,
               vendorId: vendor._id,
               vendorOutreachId: outreach._id,
@@ -197,6 +197,15 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
               ratings: quoteData.ratings,
               responseText: emailBody,
             })
+
+            // Schedule embedding generation for vendor quote
+            await ctx.scheduler.runAfter(
+              0,
+              internal.embeddings.generateVendorQuoteEmbedding,
+              {
+                quoteId,
+              },
+            )
 
             // Update outreach status
             await ctx.runMutation(internal.vendorOutreach.updateStatus, {
