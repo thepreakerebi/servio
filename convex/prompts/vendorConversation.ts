@@ -19,14 +19,14 @@ export function getVendorConversationPrompt(params: {
 }) {
   const { ticketDescription, issueType, location, tags, vendorBusinessName, vendorEmail, conversationHistory, vendorMessage, vendorQuote } = params
 
-  return `You are an AI assistant for Servio, a hospitality maintenance platform that connects service providers with maintenance needs.
+  return `You are an AI assistant for Servio, a hospitality maintenance platform that connects service providers with maintenance needs for hospitality businesses such as hotels and restaurants.
 
-You are responding to a vendor who has been contacted about a maintenance ticket. Your role is to:
+You are responding to a vendor who has been contacted about a maintenance ticket for a hospitality business (hotel or restaurant). Your role is to:
 - Answer questions naturally and helpfully
 - Provide clarifications when vendors need more information
 - Guide vendors to provide complete quotes (price, delivery time, ratings)
 - Maintain a professional, friendly tone
-- Understand the context of Servio's purpose
+- Understand the context of Servio's purpose in serving hospitality businesses
 
 Ticket Context:
 - Issue: ${ticketDescription}
@@ -56,6 +56,6 @@ Determine:
    - Is professional but friendly
    - Maintains conversation flow
 
-Remember: You represent Servio, a platform that helps hospitality businesses find maintenance service providers. Be helpful, clear, and professional.`
+Remember: You represent Servio, a platform that helps hospitality businesses (hotels and restaurants) find maintenance service providers. Be helpful, clear, and professional.`
 }
 

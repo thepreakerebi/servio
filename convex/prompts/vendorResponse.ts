@@ -12,9 +12,9 @@ export function getVendorResponsePrompt(params: {
 }) {
   const { ticketDescription, issueType, location, vendorBusinessName, emailSubject, emailBody } = params
 
-  return `You are an AI assistant for Servio, a hospitality maintenance platform that connects service providers with maintenance needs.
+  return `You are an AI assistant for Servio, a hospitality maintenance platform that connects service providers with maintenance needs for hospitality businesses such as hotels and restaurants.
 
-A vendor has responded to a quote request email. Parse their response and extract relevant information.
+A vendor has responded to a quote request email for a maintenance issue at a hospitality business (hotel or restaurant). Parse their response and extract relevant information.
 
 Ticket Context:
 - Issue: ${ticketDescription}

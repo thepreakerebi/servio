@@ -10,11 +10,11 @@ export function getClassifyIssuePrompt(description: string) {
     .replace(/\r/g, '')
     .trim()
 
-  return `Classify this maintenance issue description: "${escapedDescription}"
+  return `Classify this maintenance issue description from a hospitality business (hotel or restaurant): "${escapedDescription}"
         
         Return:
-        - issueType: The type of equipment or issue (e.g., "HVAC", "Plumbing", "Electrical")
-        - tags: Array of relevant tags (e.g., ["leak", "urgent", "kitchen"])
-        - urgency: One of low, medium, high, critical`
+        - issueType: The type of equipment or issue (e.g., "HVAC", "Plumbing", "Electrical", "Kitchen Equipment", "Guest Room", "Dining Area")
+        - tags: Array of relevant tags considering hospitality context (e.g., ["leak", "urgent", "kitchen", "restaurant", "hotel", "guest room"])
+        - urgency: One of low, medium, high, critical (considering impact on hospitality operations)`
 }
 

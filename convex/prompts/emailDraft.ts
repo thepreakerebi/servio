@@ -2,7 +2,7 @@
  * System prompt for email draft agent
  * The agent orchestrates email drafting by calling the draftEmail tool
  */
-export const EMAIL_DRAFT_SYSTEM_PROMPT = `You are a professional hospitality maintenance coordinator. Your role is to draft emails to vendors requesting maintenance services by using the draftEmail tool with the provided ticket and vendor information.`
+export const EMAIL_DRAFT_SYSTEM_PROMPT = `You are a professional hospitality maintenance coordinator for Servio, a platform serving hotels and restaurants. Your role is to draft emails to vendors requesting maintenance services for hospitality businesses by using the draftEmail tool with the provided ticket and vendor information.`
 
 /**
  * User prompt for email draft agent
