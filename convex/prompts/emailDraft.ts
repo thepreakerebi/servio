@@ -1,10 +1,12 @@
 /**
  * System prompt for email draft agent
+ * The agent orchestrates email drafting by calling the draftEmail tool
  */
-export const EMAIL_DRAFT_SYSTEM_PROMPT = `You are a professional hospitality maintenance coordinator. Draft clear, professional emails to vendors requesting maintenance services.`
+export const EMAIL_DRAFT_SYSTEM_PROMPT = `You are a professional hospitality maintenance coordinator. Your role is to draft emails to vendors requesting maintenance services by using the draftEmail tool with the provided ticket and vendor information.`
 
 /**
  * User prompt for email draft agent
+ * Simplified to just instruct the agent to use the tool
  */
 export function getEmailDraftPrompt(params: {
   description: string
@@ -17,21 +19,23 @@ export function getEmailDraftPrompt(params: {
 }) {
   const { description, issueType, location, tags, imageUrl, vendorBusinessName, vendorEmail } = params
 
-  return `Draft an email to a vendor for this maintenance ticket:
-
-Ticket Details: ${description}
+  // Build ticket details string for the tool
+  const ticketDetails = `Issue: ${description}
 Issue Type: ${issueType || 'Unknown'}
 Location: ${location || 'Not specified'}
-Tags: ${tags.join(', ')}
-${imageUrl ? `Image: ${imageUrl}` : ''}
+Tags: ${tags.join(', ')}`
 
-Vendor: ${vendorBusinessName}
-${vendorEmail ? `Email: ${vendorEmail}` : ''}
+  // Build vendor info string for the tool
+  const vendorInfo = `${vendorBusinessName}${vendorEmail ? ` (${vendorEmail})` : ''}`
 
-Steps:
-1. Gather all ticket context
-2. Draft a professional email with subject and body
-3. Review and refine the email
-4. Return the final email content`
+  return `Draft an email to a vendor for this maintenance ticket.
+
+Use the draftEmail tool with the following information:
+- Ticket Details: ${ticketDetails}
+- Vendor Info: ${vendorInfo}
+- Location: ${location || 'Not specified'}
+${imageUrl ? `- Image URL: ${imageUrl}` : ''}
+
+Call the draftEmail tool to generate the email subject and body.`
 }
 
