@@ -186,26 +186,21 @@ html {
 
 /** System Fonts **/
 @theme {
-  --font-sans:
+  --font-family-sans:
     'Manrope', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
     'Segoe UI Symbol', 'Noto Color Emoji';
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-
-  font-family: {
-    sans: var(--font-sans);
-    mono: var(--font-mono);
-  }
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
 body {
   @apply m-0;
-  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-family-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: var(--font-mono);
+  font-family: var(--font-family-mono);
 }
 
 /*---break---*/

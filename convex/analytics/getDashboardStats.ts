@@ -38,10 +38,18 @@ export const getDashboardStats = query({
 
     // Calculate quote statistics
     const newQuotesCount = quotes.filter((q) => q.status === 'received').length
-    const pendingQuotesCount = quotes.filter((q) => q.status === 'pending').length
-    const selectedQuotesCount = quotes.filter((q) => q.status === 'selected').length
-    const rejectedQuotesCount = quotes.filter((q) => q.status === 'rejected').length
-    const expiredQuotesCount = quotes.filter((q) => q.status === 'expired').length
+    const pendingQuotesCount = quotes.filter(
+      (q) => q.status === 'pending',
+    ).length
+    const selectedQuotesCount = quotes.filter(
+      (q) => q.status === 'selected',
+    ).length
+    const rejectedQuotesCount = quotes.filter(
+      (q) => q.status === 'rejected',
+    ).length
+    const expiredQuotesCount = quotes.filter(
+      (q) => q.status === 'expired',
+    ).length
 
     // Calculate average quote price (only for received quotes)
     const receivedQuotes = quotes.filter((q) => q.status === 'received')
@@ -54,7 +62,9 @@ export const getDashboardStats = query({
         : null
 
     // Calculate average quote delivery time (only for received quotes)
-    const quoteDeliveryTimes = receivedQuotes.map((q) => q.estimatedDeliveryTime)
+    const quoteDeliveryTimes = receivedQuotes.map(
+      (q) => q.estimatedDeliveryTime,
+    )
     const averageQuoteDeliveryTimeHours =
       quoteDeliveryTimes.length > 0
         ? Math.round(
@@ -66,8 +76,7 @@ export const getDashboardStats = query({
 
     // Count tickets awaiting quote selection (have quotes but no selected vendor)
     const ticketsAwaitingSelection = tickets.filter(
-      (t) =>
-        t.quoteStatus === 'quotes_received' && !t.selectedVendorQuoteId,
+      (t) => t.quoteStatus === 'quotes_received' && !t.selectedVendorQuoteId,
     ).length
 
     // Calculate average response time (time from ticket creation to first vendor reply)
@@ -128,7 +137,9 @@ export const getDashboardStats = query({
     const vendorEntries = Object.entries(vendorUsage)
     const mostUsedVendorId: Id<'vendors'> | null =
       vendorEntries.length > 0
-        ? (vendorEntries.reduce((a, b) => (a[1] > b[1] ? a : b))[0] as Id<'vendors'>)
+        ? (vendorEntries.reduce((a, b) =>
+            a[1] > b[1] ? a : b,
+          )[0] as Id<'vendors'>)
         : null
 
     const mostUsedVendor = mostUsedVendorId

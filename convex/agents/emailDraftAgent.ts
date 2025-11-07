@@ -18,7 +18,10 @@ export const draftVendorEmail = action({
     ticketId: v.id('tickets'),
     vendorId: v.id('vendors'),
   },
-  handler: async (ctx, args): Promise<{
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
     subject: string
     body: string
     agentText: string
@@ -105,7 +108,10 @@ export const draftVendorEmail = action({
   },
 })
 
-function extractEmailFromSteps(steps: Array<any>): { subject: string; body: string } {
+function extractEmailFromSteps(steps: Array<any>): {
+  subject: string
+  body: string
+} {
   for (const step of steps) {
     if (step.toolResults) {
       for (const toolResult of step.toolResults) {
@@ -120,4 +126,3 @@ function extractEmailFromSteps(steps: Array<any>): { subject: string; body: stri
   }
   return { subject: '', body: '' }
 }
-

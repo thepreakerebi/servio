@@ -10,7 +10,7 @@ export const addMessage = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
-    
+
     const conversation = await ctx.db.get(args.conversationId)
     if (!conversation) {
       throw new Error('Conversation not found')
@@ -36,4 +36,3 @@ export const addMessage = mutation({
     })
   },
 })
-

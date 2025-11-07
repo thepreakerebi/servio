@@ -18,7 +18,10 @@ export const analyzeTicket = action({
   args: {
     ticketId: v.id('tickets'),
   },
-  handler: async (ctx, args): Promise<{
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
     text: string
     steps: Array<any>
   }> => {
@@ -95,4 +98,3 @@ export const analyzeTicket = action({
     }
   },
 })
-

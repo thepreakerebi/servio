@@ -26,7 +26,6 @@ import type * as conversations_addMessage from "../conversations/addMessage.js";
 import type * as conversations_create from "../conversations/create.js";
 import type * as conversations_getById from "../conversations/getById.js";
 import type * as conversations_getByIdInternal from "../conversations/getByIdInternal.js";
-import type * as conversations_getByTicketId from "../conversations/getByTicketId.js";
 import type * as conversations_getByTicketIdInternal from "../conversations/getByTicketIdInternal.js";
 import type * as emails_forwardToUser from "../emails/forwardToUser.js";
 import type * as emails_handleEmailEvent from "../emails/handleEmailEvent.js";
@@ -133,7 +132,6 @@ declare const fullApi: ApiFromModules<{
   "conversations/create": typeof conversations_create;
   "conversations/getById": typeof conversations_getById;
   "conversations/getByIdInternal": typeof conversations_getByIdInternal;
-  "conversations/getByTicketId": typeof conversations_getByTicketId;
   "conversations/getByTicketIdInternal": typeof conversations_getByTicketIdInternal;
   "emails/forwardToUser": typeof emails_forwardToUser;
   "emails/handleEmailEvent": typeof emails_handleEmailEvent;

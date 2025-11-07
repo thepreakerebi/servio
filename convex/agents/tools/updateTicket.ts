@@ -49,4 +49,3 @@ export function createUpdateTicketTool(ctx: ActionCtx) {
     },
   } as any)
 }
-

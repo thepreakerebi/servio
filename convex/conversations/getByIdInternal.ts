@@ -9,4 +9,3 @@ export const getByIdInternal = internalQuery({
     return await ctx.db.get(args.conversationId)
   },
 })
-

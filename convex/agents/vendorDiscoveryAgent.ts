@@ -32,7 +32,10 @@ export const discoverVendors = action({
   args: {
     ticketId: v.id('tickets'),
   },
-  handler: async (ctx, args): Promise<{
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
     vendors: Array<VendorResult>
     source: 'database' | 'web_search'
     text: string
@@ -72,7 +75,9 @@ export const discoverVendors = action({
     )
 
     if (!userData?.location) {
-      throw new Error('User location is required. Please update your profile with a location.')
+      throw new Error(
+        'User location is required. Please update your profile with a location.',
+      )
     }
 
     const location: string = userData.location
@@ -176,7 +181,9 @@ export const discoverVendors = action({
     // Store firecrawl results
     // Note: The agent should call searchVendors which returns vendors
     // We'll extract vendors from the agent's tool calls
-    const vendorResults: Array<VendorResult> = extractVendorsFromSteps(result.steps)
+    const vendorResults: Array<VendorResult> = extractVendorsFromSteps(
+      result.steps,
+    )
 
     if (vendorResults.length > 0) {
       const firecrawlResultsId: Id<'firecrawlResults'> = await ctx.runMutation(

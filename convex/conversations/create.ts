@@ -8,7 +8,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
-    
+
     // Verify user owns the ticket by querying directly
     const ticket = await ctx.db.get(args.ticketId)
     if (!ticket) {
@@ -34,4 +34,3 @@ export const create = mutation({
     return conversationId
   },
 })
-

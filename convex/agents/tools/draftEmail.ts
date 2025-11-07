@@ -7,7 +7,8 @@ import { getDraftEmailPrompt } from '../../prompts/draftEmail'
 
 export function createDraftEmailTool() {
   return tool({
-    description: 'Draft a professional email to a vendor with ticket details, images, and location',
+    description:
+      'Draft a professional email to a vendor with ticket details, images, and location',
     parameters: z.object({
       ticketDetails: z.string().describe('Ticket description and details'),
       vendorInfo: z.string().describe('Vendor business name and contact info'),
@@ -39,4 +40,3 @@ export function createDraftEmailTool() {
     },
   } as any)
 }
-

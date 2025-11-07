@@ -18,7 +18,8 @@ type AnalyzeImageParams = z.infer<typeof analyzeImageSchema>
 
 export function createAnalyzeImageTool(ctx: ActionCtx) {
   return tool({
-    description: 'Analyze an image to identify equipment type, problem description, and visual tags',
+    description:
+      'Analyze an image to identify equipment type, problem description, and visual tags',
     parameters: analyzeImageSchema,
     execute: async ({ imageUrl }: AnalyzeImageParams) => {
       // Fetch image and convert to base64
@@ -62,4 +63,3 @@ export function createAnalyzeImageTool(ctx: ActionCtx) {
     },
   } as any)
 }
-

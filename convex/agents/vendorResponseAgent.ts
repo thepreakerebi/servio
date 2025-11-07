@@ -21,7 +21,10 @@ export const parseVendorResponse = action({
     emailBody: v.string(),
     emailSubject: v.string(),
   },
-  handler: async (ctx, args): Promise<{
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
     hasQuote: boolean
     price?: number
     currency: string
@@ -58,52 +61,54 @@ export const parseVendorResponse = action({
     // The agent understands Servio's purpose and can handle various response formats
     const { object: quoteData } = await generateObject({
       model: openai('gpt-4o'),
-      schema: z.object({
-        hasQuote: z.boolean().describe('Whether the vendor provided a quote'),
-        price: z
-          .number()
-          .optional()
-          .describe('Price in smallest currency unit (cents for USD)'),
-        currency: z
-          .string()
-          .default('USD')
-          .describe('Currency code (USD, EUR, etc.), defaults to USD'),
-        estimatedDeliveryTime: z
-          .number()
-          .optional()
-          .describe('Estimated delivery/completion time in hours'),
-        ratings: z
-          .number()
-          .optional()
-          .describe('Ratings/reviews score if provided (0-5 scale)'),
-        notes: z
-          .string()
-          .optional()
-          .describe('Additional notes or conditions from vendor'),
-        isDeclining: z
-          .boolean()
-          .describe('Whether the vendor is declining the work'),
-        declineReason: z
-          .string()
-          .optional()
-          .describe('Reason for declining if applicable'),
-      }).refine(
-        (data) => {
-          // If vendor provided a quote and is not declining, require price and estimatedDeliveryTime
-          // Note: currency always has a default value of 'USD', so it's always defined
-          if (data.hasQuote && !data.isDeclining) {
-            return (
-              data.price !== undefined &&
-              data.estimatedDeliveryTime !== undefined
-            )
-          }
-          return true
-        },
-        {
-          message:
-            'Complete quote must include price and estimatedDeliveryTime',
-        },
-      ),
+      schema: z
+        .object({
+          hasQuote: z.boolean().describe('Whether the vendor provided a quote'),
+          price: z
+            .number()
+            .optional()
+            .describe('Price in smallest currency unit (cents for USD)'),
+          currency: z
+            .string()
+            .default('USD')
+            .describe('Currency code (USD, EUR, etc.), defaults to USD'),
+          estimatedDeliveryTime: z
+            .number()
+            .optional()
+            .describe('Estimated delivery/completion time in hours'),
+          ratings: z
+            .number()
+            .optional()
+            .describe('Ratings/reviews score if provided (0-5 scale)'),
+          notes: z
+            .string()
+            .optional()
+            .describe('Additional notes or conditions from vendor'),
+          isDeclining: z
+            .boolean()
+            .describe('Whether the vendor is declining the work'),
+          declineReason: z
+            .string()
+            .optional()
+            .describe('Reason for declining if applicable'),
+        })
+        .refine(
+          (data) => {
+            // If vendor provided a quote and is not declining, require price and estimatedDeliveryTime
+            // Note: currency always has a default value of 'USD', so it's always defined
+            if (data.hasQuote && !data.isDeclining) {
+              return (
+                data.price !== undefined &&
+                data.estimatedDeliveryTime !== undefined
+              )
+            }
+            return true
+          },
+          {
+            message:
+              'Complete quote must include price and estimatedDeliveryTime',
+          },
+        ),
       prompt: getVendorResponsePrompt({
         ticketDescription: ticket.description,
         issueType: ticket.issueType,
@@ -117,4 +122,3 @@ export const parseVendorResponse = action({
     return quoteData
   },
 })
-

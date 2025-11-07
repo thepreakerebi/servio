@@ -6,7 +6,7 @@ export const getById = query({
   args: { conversationId: v.id('conversations') },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx)
-    
+
     const conversation = await ctx.db.get(args.conversationId)
     if (!conversation) {
       return null
@@ -21,4 +21,3 @@ export const getById = query({
     return conversation
   },
 })
-

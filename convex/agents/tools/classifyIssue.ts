@@ -13,7 +13,8 @@ type ClassifyIssueParams = z.infer<typeof classifyIssueSchema>
 
 export function createClassifyIssueTool() {
   return tool({
-    description: 'Classify issue type, generate tags, and predict urgency from description text',
+    description:
+      'Classify issue type, generate tags, and predict urgency from description text',
     parameters: classifyIssueSchema,
     execute: async ({ description }: ClassifyIssueParams) => {
       const { object } = await generateObject({
@@ -32,4 +33,3 @@ export function createClassifyIssueTool() {
     },
   } as any)
 }
-

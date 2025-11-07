@@ -8,7 +8,7 @@ import type { MutationCtx } from './_generated/server'
  * References:
  * - https://labs.convex.dev/auth/config/oauth/google
  * - https://labs.convex.dev/auth/config/email
- * 
+ *
  * Resend provider uses AUTH_RESEND_KEY environment variable
  * Set via: npx convex env set AUTH_RESEND_KEY yourresendkey
  */
@@ -74,4 +74,3 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     },
   },
 })
-

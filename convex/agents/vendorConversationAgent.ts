@@ -31,11 +31,20 @@ export const generateVendorResponse = action({
       }),
     ),
   },
-  handler: async (ctx, args): Promise<{
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
     shouldRespond: boolean
     responseSubject?: string
     responseBody?: string
-    intent: 'question' | 'clarification' | 'quote_provided' | 'declining' | 'follow_up' | 'other'
+    intent:
+      | 'question'
+      | 'clarification'
+      | 'quote_provided'
+      | 'declining'
+      | 'follow_up'
+      | 'other'
   }> => {
     // Get ticket and vendor data
     const ticket: Doc<'tickets'> | null = await ctx.runQuery(
@@ -143,4 +152,3 @@ export const generateVendorResponse = action({
     return responseData
   },
 })
-
