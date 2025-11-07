@@ -5,6 +5,10 @@ import { openai } from '@ai-sdk/openai'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
 import { internal } from '../_generated/api'
+import {
+  VENDOR_DISCOVERY_SYSTEM_PROMPT,
+  getVendorDiscoveryPrompt,
+} from '../prompts/vendorDiscovery'
 import { createSearchVendorsTool } from './tools/searchVendors'
 import { createUpdateTicketTool } from './tools/updateTicket'
 
@@ -129,13 +133,13 @@ export const discoverVendors = action({
 
     // No existing vendors found, proceed with web search
     // Create tools
-    const searchVendors = createSearchVendorsTool(ctx)
+    const searchVendors = createSearchVendorsTool()
     const updateTicket = createUpdateTicketTool(ctx)
 
     // Create agent
     const agent = new Agent({
       model: openai('gpt-4o'),
-      system: `You are an expert at finding local service providers. Search for vendors that match the issue type and location, filter by relevance, and store results.`,
+      system: VENDOR_DISCOVERY_SYSTEM_PROMPT,
       tools: {
         searchVendors,
         updateTicket,
@@ -144,17 +148,11 @@ export const discoverVendors = action({
     })
 
     // Generate vendor discovery
-    const prompt = `Find local vendors for this maintenance ticket:
-    
-Issue Type: ${ticket.issueType || 'Unknown'}
-Tags: ${ticket.predictedTags.join(', ')}
-Location: ${location}
-
-Steps:
-1. Search for vendors matching the issue type and location
-2. Evaluate results and filter by relevance
-3. Refine search if needed to find better matches
-4. Store the best vendor candidates`
+    const prompt = getVendorDiscoveryPrompt({
+      issueType: ticket.issueType,
+      tags: ticket.predictedTags,
+      location,
+    })
 
     const result = await agent.generate({ prompt })
 

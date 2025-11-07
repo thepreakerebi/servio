@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
 import { internal } from '../_generated/api'
+import { getVendorResponsePrompt } from '../prompts/vendorResponse'
 
 /**
  * Parse vendor email response to extract quote details
@@ -87,35 +88,14 @@ export const parseVendorResponse = action({
             'Complete quote must include price and estimatedDeliveryTime',
         },
       ),
-      prompt: `You are an AI assistant for Servio, a hospitality maintenance platform that connects service providers with maintenance needs.
-
-A vendor has responded to a quote request email. Parse their response and extract relevant information.
-
-Ticket Context:
-- Issue: ${ticket.description}
-- Issue Type: ${ticket.issueType || 'Unknown'}
-- Location: ${ticket.location || 'Not specified'}
-
-Vendor: ${vendor.businessName}
-Email Subject: ${args.emailSubject}
-Email Body: ${args.emailBody}
-
-Extract the following information from the vendor's response:
-1. **Price**: Look for any mention of price, cost, quote, estimate, fee, charge, etc. Convert to smallest currency unit (e.g., $500 = 50000 cents for USD)
-2. **Currency**: Identify the currency (USD, EUR, GBP, etc.). Default to USD if not specified.
-3. **Delivery Time**: Look for completion time, delivery time, estimated time, etc. Convert to hours (e.g., "2 days" = 48 hours, "1 week" = 168 hours)
-4. **Ratings**: If the vendor mentions ratings, reviews, or satisfaction scores, extract them (0-5 scale)
-5. **Notes**: Any additional information, conditions, or requirements
-6. **Declining**: Determine if the vendor is declining the work or unable to take it on
-
-The vendor may respond in various formats:
-- Formal quote with structured pricing
-- Casual response with pricing mentioned
-- Questions about the work
-- Decline due to unavailability or other reasons
-- Partial information (e.g., only price, only time)
-
-Be intelligent about parsing - vendors may not always provide all requested information, but try to extract what's available.`,
+      prompt: getVendorResponsePrompt({
+        ticketDescription: ticket.description,
+        issueType: ticket.issueType,
+        location: ticket.location,
+        vendorBusinessName: vendor.businessName,
+        emailSubject: args.emailSubject,
+        emailBody: args.emailBody,
+      }),
     })
 
     return quoteData

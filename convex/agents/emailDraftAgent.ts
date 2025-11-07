@@ -7,6 +7,10 @@ import { action } from '../_generated/server'
 import { internal } from '../_generated/api'
 import { createDraftEmailTool } from './tools/draftEmail'
 import { createUpdateTicketTool } from './tools/updateTicket'
+import {
+  EMAIL_DRAFT_SYSTEM_PROMPT,
+  getEmailDraftPrompt,
+} from '../prompts/emailDraft'
 
 export const draftVendorEmail = action({
   args: {
@@ -56,7 +60,7 @@ export const draftVendorEmail = action({
     // Create agent
     const agent = new Agent({
       model: openai('gpt-4o'),
-      system: `You are a professional hospitality maintenance coordinator. Draft clear, professional emails to vendors requesting maintenance services.`,
+      system: EMAIL_DRAFT_SYSTEM_PROMPT,
       tools: {
         draftEmail,
         updateTicket,
@@ -65,22 +69,15 @@ export const draftVendorEmail = action({
     })
 
     // Generate email draft
-    const prompt = `Draft an email to a vendor for this maintenance ticket:
-
-Ticket Details: ${ticket.description}
-Issue Type: ${ticket.issueType || 'Unknown'}
-Location: ${ticket.location}
-Tags: ${ticket.predictedTags.join(', ')}
-${imageUrl ? `Image: ${imageUrl}` : ''}
-
-Vendor: ${vendor.businessName}
-${vendor.email ? `Email: ${vendor.email}` : ''}
-
-Steps:
-1. Gather all ticket context
-2. Draft a professional email with subject and body
-3. Review and refine the email
-4. Return the final email content`
+    const prompt = getEmailDraftPrompt({
+      description: ticket.description,
+      issueType: ticket.issueType,
+      location: ticket.location,
+      tags: ticket.predictedTags,
+      imageUrl,
+      vendorBusinessName: vendor.businessName,
+      vendorEmail: vendor.email,
+    })
 
     const result = await agent.generate({ prompt })
 

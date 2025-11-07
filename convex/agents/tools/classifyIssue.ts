@@ -3,6 +3,7 @@
 import { generateObject, tool } from 'ai'
 import { z } from 'zod'
 import { openai } from '@ai-sdk/openai'
+import { getClassifyIssuePrompt } from '../../prompts/classifyIssue'
 
 const classifyIssueSchema = z.object({
   description: z.string().describe('Issue description text'),
@@ -24,12 +25,7 @@ export function createClassifyIssueTool() {
             .enum(['low', 'medium', 'high', 'critical'])
             .describe('Urgency level'),
         }),
-        prompt: `Classify this maintenance issue description: "${description}"
-        
-        Return:
-        - issueType: The type of equipment or issue (e.g., "HVAC", "Plumbing", "Electrical")
-        - tags: Array of relevant tags (e.g., ["leak", "urgent", "kitchen"])
-        - urgency: One of low, medium, high, critical`,
+        prompt: getClassifyIssuePrompt(description),
       })
 
       return object

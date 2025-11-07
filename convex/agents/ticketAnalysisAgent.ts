@@ -5,6 +5,10 @@ import { openai } from '@ai-sdk/openai'
 import { v } from 'convex/values'
 import { action } from '../_generated/server'
 import { internal } from '../_generated/api'
+import {
+  TICKET_ANALYSIS_SYSTEM_PROMPT,
+  getTicketAnalysisPrompt,
+} from '../prompts/ticketAnalysis'
 import { createAnalyzeImageTool } from './tools/analyzeImage'
 import { createClassifyIssueTool } from './tools/classifyIssue'
 import { createUpdateTicketTool } from './tools/updateTicket'
@@ -48,7 +52,7 @@ export const analyzeTicket = action({
     // Create agent
     const agent = new Agent({
       model: openai('gpt-4o'),
-      system: `You are an expert maintenance issue classifier. Analyze images and descriptions to classify equipment issues, generate relevant tags, and predict urgency.`,
+      system: TICKET_ANALYSIS_SYSTEM_PROMPT,
       tools: {
         analyzeImage,
         classifyIssue,
@@ -58,17 +62,11 @@ export const analyzeTicket = action({
     })
 
     // Generate analysis
-    const prompt = `Analyze this maintenance ticket:
-    
-Description: ${ticket.description}
-Location: ${ticket.location}
-${imageUrl ? `Image: ${imageUrl}` : 'No image provided'}
-
-Steps:
-1. Analyze the image (if available) to identify equipment type and visual problems
-2. Classify the issue from the description text
-3. Combine both analyses to generate comprehensive tags and issue type
-4. Update the ticket with your findings`
+    const prompt = getTicketAnalysisPrompt({
+      description: ticket.description,
+      location: ticket.location,
+      imageUrl,
+    })
 
     const result = await agent.generate({ prompt })
 

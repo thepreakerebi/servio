@@ -2,7 +2,7 @@
 
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ActionCtx } from '../../_generated/server'
+import { VENDOR_EXTRACTION_PROMPT } from '../../prompts/vendorExtraction'
 
 const searchVendorsSchema = z.object({
   location: z.string().describe('Location to search for vendors'),
@@ -16,7 +16,7 @@ const searchVendorsSchema = z.object({
 
 type SearchVendorsParams = z.infer<typeof searchVendorsSchema>
 
-export function createSearchVendorsTool(ctx: ActionCtx) {
+export function createSearchVendorsTool() {
   return tool({
     description:
       'Search for local vendors using Firecrawl Search API and optionally extract detailed vendor information using Extract API',
@@ -94,8 +94,7 @@ export function createSearchVendorsTool(ctx: ActionCtx) {
                 },
                 body: JSON.stringify({
                   urls: extractUrls,
-                  prompt:
-                    'Extract vendor business information including business name, email, phone number, address, services offered, and any ratings or reviews.',
+                  prompt: VENDOR_EXTRACTION_PROMPT,
                   schema: {
                     type: 'object',
                     properties: {
