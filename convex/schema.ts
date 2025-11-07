@@ -25,15 +25,25 @@ export default defineSchema({
     status: v.string(),
     firecrawlResultsId: v.optional(v.id('firecrawlResults')),
     selectedVendorId: v.optional(v.id('vendors')),
+    selectedVendorQuoteId: v.optional(v.id('vendorQuotes')),
     conversationId: v.optional(v.id('conversations')),
     scheduledDate: v.optional(v.number()),
     verificationPhotoId: v.optional(v.id('_storage')),
     closedAt: v.optional(v.number()),
     embedding: v.optional(v.array(v.float64())),
+    quoteStatus: v.optional(
+      v.union(
+        v.literal('awaiting_quotes'),
+        v.literal('quotes_received'),
+        v.literal('vendor_selected'),
+        v.literal('scheduling'),
+      ),
+    ),
   })
     .index('by_createdBy', ['createdBy'])
     .index('by_status', ['status'])
     .index('by_selectedVendorId', ['selectedVendorId'])
+    .index('by_quoteStatus', ['quoteStatus'])
     .vectorIndex('by_embedding', {
       vectorField: 'embedding',
       dimensions: 1536,
@@ -66,11 +76,13 @@ export default defineSchema({
       }),
     ),
     embedding: v.optional(v.array(v.float64())),
-  }).vectorIndex('by_embedding', {
-    vectorField: 'embedding',
-    dimensions: 1536,
-    filterFields: ['specialty'],
-  }),
+  })
+    .index('by_email', ['email'])
+    .vectorIndex('by_embedding', {
+      vectorField: 'embedding',
+      dimensions: 1536,
+      filterFields: ['specialty'],
+    }),
 
   emailMappings: defineTable({
     emailId: v.string(), // Resend email ID
@@ -133,4 +145,50 @@ export default defineSchema({
       dimensions: 1536,
       filterFields: ['ticketId'],
     }),
+
+  vendorOutreach: defineTable({
+    ticketId: v.id('tickets'),
+    vendorId: v.id('vendors'),
+    emailId: v.string(), // Resend email ID
+    emailSentAt: v.number(),
+    status: v.union(
+      v.literal('sent'),
+      v.literal('delivered'),
+      v.literal('opened'),
+      v.literal('responded'),
+      v.literal('bounced'),
+      v.literal('expired'),
+    ),
+    followUpSentAt: v.optional(v.number()),
+    expiresAt: v.number(), // Quote request expiration time
+  })
+    .index('by_ticketId', ['ticketId'])
+    .index('by_vendorId', ['vendorId'])
+    .index('by_emailId', ['emailId'])
+    .index('by_status', ['status']),
+
+  vendorQuotes: defineTable({
+    ticketId: v.id('tickets'),
+    vendorId: v.id('vendors'),
+    vendorOutreachId: v.id('vendorOutreach'),
+    price: v.number(), // Price in cents or smallest currency unit
+    currency: v.string(), // Currency code (USD, EUR, etc.)
+    estimatedDeliveryTime: v.number(), // Estimated time in hours
+    ratings: v.optional(v.number()), // Vendor-provided rating/review score
+    responseText: v.string(), // Raw email response from vendor
+    status: v.union(
+      v.literal('pending'),
+      v.literal('received'),
+      v.literal('selected'),
+      v.literal('rejected'),
+      v.literal('expired'),
+    ),
+    responseReceivedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    score: v.optional(v.number()), // Calculated ranking score
+  })
+    .index('by_ticketId', ['ticketId'])
+    .index('by_vendorId', ['vendorId'])
+    .index('by_status', ['status'])
+    .index('by_ticketId_status', ['ticketId', 'status']),
 })

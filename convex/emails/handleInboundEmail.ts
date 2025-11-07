@@ -69,6 +69,103 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
       return new Response('OK', { status: 200 })
     }
 
+    // Get ticket
+    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
+      ticketId: ticketId as Id<'tickets'>,
+    })
+
+    if (!ticket) {
+      console.warn(`Ticket not found: ${ticketId}`)
+      return new Response('OK', { status: 200 })
+    }
+
+    // Find vendor outreach record by matching sender email
+    // Extract sender email from payload
+    const eventData = payload.data || payload
+    const senderEmail =
+      eventData.from?.email ||
+      eventData.from ||
+      payload.from?.email ||
+      payload.from ||
+      ''
+
+    // Find vendor by email
+    const vendor = await ctx.runQuery(internal.vendors.getByEmail, {
+      email: senderEmail,
+    })
+
+    if (vendor) {
+      // Find outreach record for this vendor and ticket
+      const outreachRecords = await ctx.runQuery(
+        internal.vendorOutreach.getByTicketId,
+        {
+          ticketId: ticketId as Id<'tickets'>,
+        },
+      )
+
+      const outreach = outreachRecords.find(
+        (o: (typeof outreachRecords)[number]) =>
+          o.vendorId === vendor._id && o.status !== 'responded',
+      )
+
+      if (outreach) {
+        // Parse vendor response using agent
+        try {
+          const quoteData = await ctx.runAction(
+            internal.agents.vendorResponseAgent.parseVendorResponse,
+            {
+              ticketId: ticketId as Id<'tickets'>,
+              vendorId: vendor._id,
+              vendorOutreachId: outreach._id,
+              emailBody,
+              emailSubject: emailSubject || '',
+            },
+          )
+
+          // If vendor provided a quote, create quote record
+          // The refine validation ensures price, currency, and estimatedDeliveryTime are defined
+          if (quoteData.hasQuote && !quoteData.isDeclining) {
+            await ctx.runMutation(internal.vendorQuotes.create, {
+              ticketId: ticketId as Id<'tickets'>,
+              vendorId: vendor._id,
+              vendorOutreachId: outreach._id,
+              price: quoteData.price!,
+              currency: quoteData.currency!,
+              estimatedDeliveryTime: quoteData.estimatedDeliveryTime!,
+              ratings: quoteData.ratings,
+              responseText: emailBody,
+            })
+
+            // Update outreach status
+            await ctx.runMutation(internal.vendorOutreach.updateStatus, {
+              outreachId: outreach._id,
+              status: 'responded',
+            })
+
+            // Rank vendors if we have multiple quotes
+            await ctx.runAction(internal.agents.vendorRankingAgent.rankVendors, {
+              ticketId: ticketId as Id<'tickets'>,
+            })
+
+            // Update ticket quote status
+            await ctx.runMutation(internal.tickets.updateInternal, {
+              ticketId: ticketId as Id<'tickets'>,
+              quoteStatus: 'quotes_received',
+            })
+          } else if (quoteData.isDeclining) {
+            // Vendor declined - update outreach status
+            await ctx.runMutation(internal.vendorOutreach.updateStatus, {
+              outreachId: outreach._id,
+              status: 'responded',
+            })
+          }
+        } catch (error) {
+          console.error('Error parsing vendor response:', error)
+          // Continue to add message to conversation even if parsing fails
+        }
+      }
+    }
+
     // Add vendor reply to conversation
     await ctx.runMutation(internal.conversations.addMessage, {
       conversationId: conversation._id,
@@ -77,11 +174,7 @@ export const handleInboundEmail = httpAction(async (ctx, request) => {
     })
 
     // Update ticket status to 'Replied' if not already in a later status
-    const ticket = await ctx.runQuery(internal.tickets.getByIdInternal, {
-      ticketId: ticketId as Id<'tickets'>,
-    })
-
-    if (ticket && ticket.status !== 'Fixed') {
+    if (ticket.status !== 'Fixed') {
       await ctx.runMutation(internal.tickets.updateStatus, {
         ticketId: ticketId as Id<'tickets'>,
         status: 'Replied',

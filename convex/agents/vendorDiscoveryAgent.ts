@@ -105,10 +105,20 @@ export const discoverVendors = action({
         },
       )
 
-      await ctx.runMutation(internal.tickets.update, {
+      await ctx.runMutation(internal.tickets.updateInternal, {
         ticketId: args.ticketId,
         firecrawlResultsId,
       })
+
+      // Automatically send outreach emails to discovered vendors
+      try {
+        await ctx.runAction(internal.vendorOutreach.sendOutreachEmails, {
+          ticketId: args.ticketId,
+        })
+      } catch (error) {
+        console.error('Error sending outreach emails:', error)
+        // Continue even if outreach fails
+      }
 
       return {
         vendors: vendorResults,
@@ -162,10 +172,20 @@ Steps:
         },
       )
 
-      await ctx.runMutation(internal.tickets.update, {
+      await ctx.runMutation(internal.tickets.updateInternal, {
         ticketId: args.ticketId,
         firecrawlResultsId,
       })
+    }
+
+    // Automatically send outreach emails to discovered vendors
+    try {
+      await ctx.runAction(internal.vendorOutreach.sendOutreachEmails, {
+        ticketId: args.ticketId,
+      })
+    } catch (error) {
+      console.error('Error sending outreach emails:', error)
+      // Continue even if outreach fails
     }
 
     return {
