@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import servioLogo from '/servio-logo.svg'
 import googleIcon from '/google-icon-logo.svg'
 
@@ -40,24 +41,36 @@ function LoginPage() {
     e.preventDefault()
     setEmailError(null)
 
+    // Validate empty email
+    if (!email || email.trim() === '') {
+      setEmailError('Email address is required')
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setEmailError(null), 5000)
+      return
+    }
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!email || !emailRegex.test(email)) {
+    if (!emailRegex.test(email.trim())) {
       setEmailError('Please enter a valid email address')
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setEmailError(null), 5000)
       return
     }
 
     try {
-      await signInWithMagicLink(email)
+      await signInWithMagicLink(email.trim())
       setMagicLinkSent(true)
     } catch (err) {
-      setEmailError(err instanceof Error ? err.message : 'Failed to send magic link')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send magic link'
+      setEmailError(errorMessage)
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setEmailError(null), 5000)
     }
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <section className="flex flex-col gap-4 w-full max-w-md">
+    <main className="min-h-screen w-full flex flex-col p-4 gap-4">
         {/* Logo Section */}
         <section className="flex justify-center">
           <img
@@ -69,7 +82,8 @@ function LoginPage() {
         </section>
 
         {/* Form Section */}
-        <section className="flex flex-col gap-4">
+        <section className="flex-1 bg-secondary flex flex-col gap-4 items-center justify-center p-4 rounded-[22px]">
+          <section className="w-full max-w-[400px] space-y-4">
           {magicLinkSent ? (
             <article className="text-center space-y-2">
               <h1 className="text-2xl font-semibold">Check your email</h1>
@@ -78,7 +92,11 @@ function LoginPage() {
               </p>
             </article>
           ) : (
-            <>
+            <section className="flex flex-col gap-4">
+
+              {/* Intro text */}
+              <h1 className="text-2xl w-full font-semibold">Maintenance management made simple for hotels & restaurants</h1>
+              
               {/* Google OAuth Button */}
               <form onSubmit={handleGoogleSignIn}>
                 <Button
@@ -99,11 +117,11 @@ function LoginPage() {
               </form>
 
               {/* Separator */}
-              <div className="relative flex items-center gap-4" role="separator" aria-label="Or">
+              <section className="relative flex items-center gap-4" role="separator" aria-label="Or">
                 <Separator className="flex-1" />
                 <span className="text-sm text-muted-foreground">or</span>
                 <Separator className="flex-1" />
-              </div>
+              </section>
 
               {/* Magic Link Form */}
               <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
@@ -114,21 +132,24 @@ function LoginPage() {
                     type="email"
                     placeholder="Enter your email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (emailError) setEmailError(null)
+                    }}
                     aria-describedby={emailError ? 'email-error' : undefined}
                     aria-invalid={!!emailError}
                     disabled={isLoading}
+                    className={emailError ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
                   {emailError && (
-                    <p id="email-error" className="text-sm text-destructive" role="alert">
-                      {emailError}
-                    </p>
+                    <Alert id="email-error" variant="destructive" appearance="light" size="sm">
+                      <AlertDescription>{emailError}</AlertDescription>
+                    </Alert>
                   )}
                   {error && !emailError && (
-                    <p className="text-sm text-destructive" role="alert">
-                      {error}
-                    </p>
+                    <Alert variant="destructive" appearance="light" size="sm">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
                   )}
                 </fieldset>
                 <Button
@@ -140,10 +161,10 @@ function LoginPage() {
                   {isLoading ? 'Sending...' : 'Continue with email'}
                 </Button>
               </form>
-            </>
+            </section>
           )}
+          </section>
         </section>
-      </section>
     </main>
   )
 }

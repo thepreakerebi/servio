@@ -4,8 +4,16 @@ import { authTables } from '@convex-dev/auth/server'
 
 export default defineSchema({
   ...authTables,
+  // Override auth_users table to add email index required by Convex Auth
+  auth_users: defineTable({
+    email: v.optional(v.string()),
+    emailVerified: v.optional(v.boolean()),
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+  }).index('email', ['email']),
   // Users table extends auth_users with custom fields
   // Synced via auth callbacks in auth.ts
+  // Note: Convex Auth requires an index named 'email' on the 'users' table
   users: defineTable({
     email: v.string(),
     name: v.optional(v.string()),
@@ -13,7 +21,11 @@ export default defineSchema({
     location: v.optional(v.string()),
     createdAt: v.number(),
     onboardingCompleted: v.optional(v.boolean()),
-  }).index('by_email', ['email']),
+    emailVerificationTime: v.optional(v.number()), // Required by Convex Auth
+    phoneVerificationTime: v.optional(v.number()), // Required by Convex Auth
+  })
+    .index('email', ['email']) // Required by Convex Auth - must be named 'email'
+    .index('by_email', ['email']), // Our custom index for queries
 
   tickets: defineTable({
     createdBy: v.id('users'),
